@@ -35,7 +35,8 @@ All scene data is saved directly in your browser's local storage.
 
 * Click **`Save Scene`** to save the current scene's configuration and download your current scene as `.html` file.
 * Note that the options will open up the next scene file.
-<img width="1265" height="453" alt="image" src="https://github.com/user-attachments/assets/7496f909-83ea-4c20-9fa8-a9efbe6c2bd5" />
+<img width="1903" height="980" alt="image" src="https://github.com/user-attachments/assets/5c1b18cb-6fc6-4c3f-bfa5-a9de95c1a562" />
+
 
 * Click **`Tabs`** to view all saved scenes and switch between them.
 
