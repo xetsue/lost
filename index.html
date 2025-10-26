@@ -1,0 +1,2334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoreScripts</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --panel-bg: rgba(15, 15, 15, 0.4);
+            --text-color: #ffffff;
+            --border-color: #333333;
+            --button-bg: transparent;
+            --button-hover-bg: rgba(255, 255, 255, 0.1);
+            --accent-color: #ffffff;
+            --font-family: 'Monospace', monospace;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            position: relative;
+        }
+        #sceneBackgroundVideo {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+            display: none;
+        }
+        * { box-sizing: border-box; }
+        button, input, select, textarea {
+            font-family: inherit;
+            background-color: var(--button-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        button:hover, input:hover, select:hover, textarea:hover { 
+            background-color: var(--button-hover-bg); 
+            border-color: var(--accent-color);
+        }
+        button:active { transform: scale(0.98); }
+        input, select, textarea { 
+            width: 100%; 
+            cursor: text; 
+            background-color: rgba(10,10,10,0.5);
+            backdrop-filter: blur(2px);
+        }
+        input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+        select option {
+            background-color: #000000;
+            color: #ffffff;
+        }
+        .main-container {
+            display: flex; flex-direction: column;
+            width: 100%;
+            height: calc(100vh - 2rem);
+            margin: auto; border: 1px solid var(--border-color); padding: 1rem;
+            cursor: pointer;
+            overflow: auto;
+            align-items: center;
+            z-index: 1;
+        }
+        .top-controls {
+            display: flex; justify-content: flex-end; gap: 0.5rem;
+            padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: transform 0.3s ease, opacity 0.3s ease, padding 0.3s ease, border 0.3s ease;
+            position: relative;
+            width: 100%;
+            z-index: 2;
+        }
+        .panel { 
+            cursor: pointer; transition: all 0.3s ease; position: relative; 
+            overflow: hidden;
+        }
+        .panel:hover { 
+            outline: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .panel-background-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+        .media-panel {
+            width: 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; text-align: center; background-size: cover; background-position: center;
+            min-height: 100px;
+            flex-shrink: 0;
+        }
+        .dialogue-panel {
+            padding: 1rem;
+            min-height: 80px;
+            overflow: auto;
+            flex-shrink: 0;
+        }
+        .speaker-name { font-weight: bold; margin-bottom: 0.5rem; min-height: 1.2em; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); }
+        .dialogue-text { min-height: 1.2em; }
+        .controls-panel {
+            display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; align-items: center; padding: 1rem;
+            min-height: 80px; overflow-y: auto; flex-shrink: 0;
+        }
+        .control-option-btn { flex-grow: 1; min-width: 150px; position: relative; cursor: grab; overflow: hidden; z-index: 0; }
+        .control-option-btn > * { position: relative; z-index: 1; }
+        .control-option-btn.dragging { opacity: 0.5; }
+        .add-option-btn { font-size: 1.5rem; width: 50px; height: 50px; border-radius: 50%; border-style: solid; flex-shrink: 0; }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6);
+            display: none; align-items: center; justify-content: center;
+            z-index: 1000;
+        }
+        #settingsModal { z-index: 1010; }
+        #promptModal { z-index: 1020; }
+        #saveModeModal { z-index: 2000; }
+        .modal-content {
+            background-color: var(--panel-bg); 
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            padding: 1.5rem; border: 1px solid var(--accent-color); border-radius: 0;
+            width: 90%; max-width: 600px; max-height: 85vh; overflow-y: auto;
+            box-shadow: 0 0 40px rgba(0,0,0,0.7);
+        }
+        .modal-header { font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .form-group { margin-bottom: 1.2rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: #ccc; }
+        .form-group .color-input-wrapper { display: flex; align-items: center; }
+        .form-group input[type="color"] { padding: 0; height: 40px; width: 50px; border: 1px solid var(--border-color); margin-left: 10px; min-width: 50px; }
+        .form-group .slider-group { display: flex; align-items: center; gap: 10px; }
+        .form-group input[type="range"] { flex-grow: 1; }
+        .form-group input[type="number"] { width: 80px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem; }
+        .modal-actions .delete-btn { background-color: #8b0000; }
+        .modal-actions .delete-btn:hover { background-color: #a52a2a; border-color: #ff4444; }
+        
+        .save-mode-options { display: flex; gap: 1rem; margin-top: 1.5rem; }
+        .save-mode-btn {
+            flex: 1; padding: 1rem; text-align: left;
+            border-width: 2px;
+        }
+        .save-mode-btn h4 { margin-top: 0; }
+        .save-mode-btn p { font-size: 0.9em; opacity: 0.8; }
+
+        .tabs { display: flex; border-bottom: 1px solid #444; margin-bottom: 1rem; flex-wrap: wrap;}
+        .tab-button { padding: 0.5rem 1rem; cursor: pointer; background-color: transparent; border: 1px solid #444; border-bottom: none; margin-right: 5px; border-radius: 0; }
+        .tab-button.active { background-color: rgba(255,255,255,0.05); }
+
+        #masterTabs > .tab-button.active {
+            border-color: var(--accent-color);
+            border-bottom-color: transparent;
+            color: var(--accent-color);
+        }
+
+        .master-tab-content .tabs {
+            border-bottom: 1px solid #555;
+            margin-top: 0.5rem;
+        }
+        .master-tab-content .tab-button {
+            font-size: 0.85rem;
+            padding: 0.3rem 0.6rem;
+            background-color: #2a2a2a;
+            border-color: #555555;
+            color: #b0b0b0;
+        }
+        .master-tab-content .tab-button.active {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-color); 
+            border-color: var(--accent-color);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .dialogue-preview { border: 1px dashed #666; padding: 1rem; margin-top: 1rem; min-height: 50px; overflow: hidden; transition: all 0.3s; }
+        #tabsPanel { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem; align-items: start;}
+        .tab-wrapper { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
+        .tab-square {
+            width: 100%;
+            aspect-ratio: 1/1; background: transparent; border: 1px solid var(--border-color); display: flex;
+            align-items: center; justify-content: center; text-align: center; padding: 5px;
+            cursor: pointer; position: relative; word-break: break-word;
+        }
+        .tab-square:hover { border-color: var(--accent-color); background: var(--button-hover-bg); }
+        .tab-square.active { border-color: var(--accent-color); }
+        .tab-delete-btn {
+            display: none; position: absolute; top: -12px; right: -12px; width: 24px; height: 24px;
+            border-radius: 50%; background: #c00; color: #fff; border: 1px solid var(--accent-color);
+            font-weight: bold; text-align: center;
+            font-size: 14px; line-height: 1; padding: 0;
+            justify-content: center; align-items: center;
+        }
+        .tab-wrapper.active-options .tab-delete-btn { display: flex; }
+        .edit-tab-btn {
+            display: none; background: none; border: none; color: var(--accent-color);
+            text-decoration: underline; padding: 0.2rem; cursor: pointer; font-size: 0.9em;
+        }
+        .tab-wrapper.active-options .edit-tab-btn { display: block; }
+        #toggleControlsBtn {
+            position: absolute;
+            top: 0.5rem;
+            left: 0.5rem;
+            padding: 0.2rem 0.8rem;
+            font-weight: bold;
+            z-index: 5;
+        }
+        #restoreControlsBtn {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            display: none;
+            z-index: 2000;
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 0.1rem 0.6rem;
+        }
+        body.controls-hidden .top-controls {
+            transform: translateY(-120%);
+            opacity: 0;
+            pointer-events: none;
+            padding-bottom: 0;
+            border: none;
+        }
+        body.controls-hidden #restoreControlsBtn {
+            display: block;
+        }
+        #editorTooltip {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            padding: 0.5rem;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <video id="sceneBackgroundVideo" autoplay muted loop></video>
+
+    <div class="main-container" id="mainContainer">
+        <div class="top-controls" id="topControls">
+            <button id="toggleControlsBtn" title="Toggle Controls View">_</button>
+            <button id="tabsBtn">Tabs</button>
+            <button id="saveBtn">Save Scene</button>
+            <button id="clearBtn">Clear Scene</button>
+            <button id="resetAllBtn" style="background-color: #8b0000;">Reset All</button>
+        </div>
+        <div id="mediaPanel" class="media-panel panel"></div>
+        <div id="dialoguePanel" class="dialogue-panel panel">
+            <div id="speakerName" class="speaker-name"></div>
+            <div id="dialogueText" class="dialogue-text"></div>
+        </div>
+        <div id="controlsPanel" class="controls-panel panel">
+            <button id="addOptionBtn" class="add-option-btn">+</button>
+        </div>
+    </div>
+    
+    <button id="restoreControlsBtn" title="Restore Controls">•••</button>
+
+    <div id="saveModeModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">Choose Your Save Mode</div>
+            <p>How do you want to save and export your project?</p>
+            <div class="save-mode-options">
+                <button class="save-mode-btn" data-mode="allInOne">
+                    <h4>All In One</h4>
+                    <p>Saves all scenes into a <strong>single HTML file</strong>. Easier to share, but the file contains all data.</p>
+                </button>
+                <button class="save-mode-btn" data-mode="separate">
+                    <h4>Separate Files</h4>
+                    <p>Saves the current scene to its <strong>own HTML file</strong>. This is a legacy method.</p>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content"><div id="modalHeader"></div><div id="modalBody"></div><div class="modal-actions">
+            <button id="deleteBtn" style="display: none;" class="delete-btn">Delete</button><button id="modalCancelBtn">Cancel</button><button id="modalSaveBtn">Save & Close</button>
+        </div></div>
+    </div>
+
+    <div id="promptModal" class="modal-overlay">
+         <div class="modal-content"><div id="promptHeader"></div><div id="promptBody"></div><div class="modal-actions">
+            <button id="promptConfirmBtn">OK</button><button id="promptCancelBtn" style="display: none;">Cancel</button>
+        </div></div>
+    </div>
+    
+    <div id="tabsModal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="tabsModalHeader" class="modal-header">Scenes</div>
+            <div id="tabsPanel"></div>
+            <div class="modal-actions">
+                <button id="closeTabsBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editorTooltip"></div>
+
+    <script>
+    const doc = (id) => document.getElementById(id);
+
+    function colorToHex(color) {
+        if (!color || color === 'transparent') {
+            return '#000000';
+        }
+        if (/^#[0-9A-F]{6}$/i.test(color)) {
+            return color;
+        }
+        if (color.startsWith('rgba')) {
+            color = getColorWithoutAlpha(color);
+        }
+
+        const temp = document.createElement('div');
+        temp.style.color = color;
+        document.body.appendChild(temp);
+        const computedColor = window.getComputedStyle(temp).color;
+        document.body.removeChild(temp);
+        
+        const parts = computedColor.match(/[\d.]+/g);
+        if (parts && parts.length >= 3) {
+            const r = parseInt(parts[0]).toString(16).padStart(2, '0');
+            const g = parseInt(parts[1]).toString(16).padStart(2, '0');
+            const b = parseInt(parts[2]).toString(16).padStart(2, '0');
+            return `#${r}${g}${b}`;
+        }
+
+        return '#000000';
+    }
+    
+    function getAlphaFromColor(color) {
+        if (typeof color !== 'string') return 100;
+        if (color.startsWith('rgba')) {
+            const parts = color.match(/[\d.]+/g);
+            if (parts && parts.length === 4) {
+                return Math.round(parseFloat(parts[3]) * 100);
+            }
+        }
+        return 100;
+    }
+
+    function getColorWithoutAlpha(color) {
+        if (typeof color !== 'string') return color;
+        if (color.startsWith('rgba')) {
+            const parts = color.match(/[\d.]+/g);
+            if (parts && parts.length === 4) {
+                return `rgb(${parts[0]}, ${parts[1]}, ${parts[2]})`;
+            }
+        }
+        return color;
+    }
+
+    function combineColorAlpha(color, alpha) {
+        if (color === 'transparent') color = 'rgb(0,0,0)';
+        const temp = document.createElement('div');
+        temp.style.color = getColorWithoutAlpha(color);
+        document.body.appendChild(temp);
+        const computedColor = window.getComputedStyle(temp).color;
+        document.body.removeChild(temp);
+        
+        const parts = computedColor.match(/[\d.]+/g);
+        if (parts && parts.length >= 3) {
+            return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${parseFloat(alpha) / 100})`;
+        }
+        return `rgba(0, 0, 0, ${parseFloat(alpha) / 100})`;
+    }
+
+
+    window.toggleBgFields = function(selectEl, prefix) {
+        const colorGroup = document.getElementById(prefix + 'BgColorGroup');
+        const imageGroup = document.getElementById(prefix + 'BgImageGroup');
+        const videoMuteGroup = document.getElementById(prefix + 'BgVideoMuteGroup');
+        const videoVolumeGroup = document.getElementById(prefix + 'BgVideoVolumeGroup');
+        const alphaGroup = document.getElementById(prefix + 'BgAlphaGroup');
+
+        if (!colorGroup || !imageGroup) return;
+        
+        if (selectEl.value === 'color') {
+            colorGroup.style.display = 'flex';
+            if (alphaGroup) alphaGroup.style.display = 'block';
+            imageGroup.style.display = 'none';
+            if (videoMuteGroup) videoMuteGroup.style.display = 'none';
+            if (videoVolumeGroup) videoVolumeGroup.style.display = 'none';
+        } else {
+            colorGroup.style.display = 'none';
+            if (alphaGroup) alphaGroup.style.display = 'none';
+            imageGroup.style.display = 'block';
+            if (videoMuteGroup) videoMuteGroup.style.display = (selectEl.value === 'video') ? 'flex' : 'none';
+            if (videoVolumeGroup) videoVolumeGroup.style.display = (selectEl.value === 'video' && !document.getElementById(prefix + 'BackgroundVideoMuted').checked) ? 'block' : 'none';
+        }
+    }
+        
+    document.addEventListener('DOMContentLoaded', () => {
+        const mainContainer = doc('mainContainer'), mediaPanel = doc('mediaPanel'), dialoguePanel = doc('dialoguePanel'),
+              speakerName = doc('speakerName'), dialogueText = doc('dialogueText'), controlsPanel = doc('controlsPanel'),
+              addOptionBtn = doc('addOptionBtn'), saveBtn = doc('saveBtn'), clearBtn = doc('clearBtn'), tabsBtn = doc('tabsBtn'),
+              resetAllBtn = doc('resetAllBtn'), settingsModal = doc('settingsModal'), modalHeader = doc('modalHeader'),
+              modalBody = doc('modalBody'), modalSaveBtn = doc('modalSaveBtn'), modalCancelBtn = doc('modalCancelBtn'),
+              deleteBtn = doc('deleteBtn'), promptModal = doc('promptModal'), promptHeader = doc('promptHeader'),
+              promptBody = doc('promptBody'), promptConfirmBtn = doc('promptConfirmBtn'), promptCancelBtn = doc('promptCancelBtn'),
+              tabsModal = doc('tabsModal'), tabsPanel = doc('tabsPanel'), closeTabsBtn = doc('closeTabsBtn'),
+              topControls = doc('topControls'), toggleControlsBtn = doc('toggleControlsBtn'), restoreControlsBtn = doc('restoreControlsBtn'),
+              sceneBackgroundVideo = doc('sceneBackgroundVideo'), saveModeModal = doc('saveModeModal');
+
+        let appData = { currentSceneIndex: 0, scenes: [] };
+        let originalStateBeforeEdit = null, currentEditTarget = null, currentEditIndex = -1;
+        
+        const defaultScene = {
+            sceneName: 'Intro',
+            main: { 
+                backgroundType: 'color', backgroundColor: '#000000', backgroundImage: '', 
+                audioFile: '', audioFileSource: 'local', audioVolume: 100,
+                backgroundVideoMuted: true,
+                backgroundVideoVolume: 100,
+                backgroundScale: 100,
+                mediaPanelHeight: 40, 
+                dialoguePanelHeight: 25, 
+                optionsPanelHeight: 25,
+                panelGap: 1,
+                padding: 1,
+                outline: '1px solid #333333',
+            },
+            media: { 
+                width: 100, positionX: 0, contentScale: 100, 
+                backgroundType: 'color', backgroundColor: 'transparent', backgroundImage: '', 
+                mediaFile: '', mediaFileMuted: true,
+                borderWidth: '1px', borderColor: '#333333', borderStyle: 'solid', borderRadius: '0px',
+                backdropFilter: 'blur(0px)', boxShadow: 'none'
+            },
+            dialogue: {
+                speaker: 'System', text: 'Welcome to Lore Scripts, happyy lore scripting!', animation: 'none', animationSpeed: 50, 
+                audioFile: '', audioFileSource: 'local', audioVolume: 100, 
+                lineHeight: '1.5',
+                panel: { 
+                    width: 100, positionX: 0, 
+                    backgroundType: 'color', backgroundColor: 'rgba(15, 15, 15, 0.4)', backgroundImage: '', borderWidth: '1px', borderColor: '#333333', borderStyle: 'solid', borderRadius: '0px', backdropFilter: 'blur(10px)', boxShadow: 'none' 
+                },
+                speakerStyle: { color: '#ffffff', fontSize: '1.2em', fontFamily: 'Monospace, monospace', fontWeight: 'bold', fontStyle: 'normal', textDecoration: 'none' },
+                textStyle: { color: '#ffffff', fontSize: '1em', fontFamily: 'Monospace, monospace', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none' },
+            },
+            controls: {
+                panel: { 
+                    width: 100, positionX: 0, 
+                    backgroundType: 'color', backgroundColor: 'rgba(15, 15, 15, 0.4)', backgroundImage: '', borderWidth: '1px', borderColor: '#333333', borderStyle: 'solid', borderRadius: '0px', backdropFilter: 'blur(10px)', boxShadow: 'none', layout: 'wrap', columns: 3 
+                },
+                buttons: [],
+            }
+        };
+
+        const defaultControlButton = {
+            text: 'New Option', targetScene: '', hoverHint: '', 
+            clickSound: '', clickSoundSource: 'local', clickSoundVolume: 100,
+            style: { 
+                backgroundType: 'color',
+                backgroundColor: '#333333',
+                backgroundImage: '',
+                color: '#ffffff', 
+                fontSize: '1em', 
+                borderWidth: '2px', 
+                borderColor: '#333333', 
+                borderStyle: 'outset', 
+                borderRadius: '0px', 
+                fontWeight: 'normal', 
+                fontStyle: 'normal',
+                textDecoration: 'none',
+                backdropFilter: 'blur(0px)', 
+                boxShadow: 'none'
+            },
+            activeStyle: { backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: '#FFFFFF' },
+            hintStyle: { 
+                backgroundType: 'color',
+                backgroundColor: '#111111',
+                backgroundImage: '',
+                color: '#ffffff', 
+                borderRadius: '0px', 
+                border: '1px solid #555',
+                fontSize: '0.9em', 
+                fontFamily: 'Monospace, monospace', 
+                fontWeight: 'normal', 
+                fontStyle: 'normal', 
+                textDecoration: 'none',
+                borderWidth: '1px', 
+                borderColor: '#555555', 
+                borderStyle: 'solid', 
+                boxShadow: 'none',
+                backdropFilter: 'blur(0px)'
+            }
+        };
+        
+        const standardFonts = ['Monospace, monospace', 'Arial, sans-serif', 'Verdana, sans-serif', 'Georgia, serif', 'Times New Roman, serif', 'Courier New, monospace', 'Impact, sans-serif', 'Comic Sans MS, cursive'];
+        const borderStyles = ['none', 'solid', 'dotted', 'dashed', 'double', 'groove', 'ridge', 'inset', 'outset'];
+        const fontWeights = ['normal', 'bold', 'bolder', 'lighter', '100', '200', '300', '400', '500', '600', '700', '800', '900'];
+        const fontStyles = ['normal', 'italic', 'oblique'];
+        const textDecorations = ['none', 'underline', 'overline', 'line-through'];
+        const animTypes = ['none', 'fade', 'typing', 'glitch-type', 'slide-up', 'slide-left', 'zoom-in', 'blur-in'];
+
+        function deepMerge(target, source) {
+            target = { ...target };
+            for (const key in source) {
+                if (source.hasOwnProperty(key)) {
+                    const targetValue = target[key];
+                    const sourceValue = source[key];
+                    if (sourceValue instanceof Object && !Array.isArray(sourceValue)) {
+                        target[key] = deepMerge(targetValue || {}, sourceValue);
+                    } else {
+                        target[key] = sourceValue;
+                    }
+                }
+            }
+            return target;
+        }
+
+        function migrateData(loadedData) {
+            let migratedData;
+            if (!loadedData.scenes || !Array.isArray(loadedData.scenes)) {
+                 migratedData = { currentSceneIndex: 0, scenes: [loadedData] };
+            } else {
+                migratedData = loadedData;
+            }
+            const defaultApp = { currentSceneIndex: 0, scenes: [defaultScene] };
+            migratedData = deepMerge(defaultApp, migratedData);
+            migratedData.scenes = migratedData.scenes.map(scene => {
+                let fullScene = deepMerge(JSON.parse(JSON.stringify(defaultScene)), scene);
+                if(scene.controls && Array.isArray(scene.controls.buttons)){
+                    fullScene.controls.buttons = scene.controls.buttons.map(button => 
+                        deepMerge(JSON.parse(JSON.stringify(defaultControlButton)), button)
+                    );
+                } else {
+                    fullScene.controls.buttons = [];
+                }
+                return fullScene;
+            });
+            return migratedData;
+        }
+
+        function saveState() {
+            try { localStorage.setItem('vbsAppData', JSON.stringify(appData)); } catch (e) { console.error("Save failed:", e); }
+        }
+
+        function loadState() {
+            try {
+                let savedData = localStorage.getItem('vbsAppData');
+                if (!savedData) {
+                    savedData = localStorage.getItem('vitalBorderScene'); 
+                    if (savedData) localStorage.removeItem('vitalBorderScene');
+                }
+                if (savedData) {
+                    appData = migrateData(JSON.parse(savedData));
+                } else {
+                    appData = { currentSceneIndex: 0, scenes: [JSON.parse(JSON.stringify(defaultScene))] };
+                }
+            } catch (error) {
+                console.error("Load/migration failed, resetting:", error);
+                appData = { currentSceneIndex: 0, scenes: [JSON.parse(JSON.stringify(defaultScene))] };
+            }
+        }
+        
+        function applyStyles(element, styles) {
+            Object.keys(styles).forEach(prop => {
+                if (prop !== 'backgroundType' && prop !== 'backgroundImage') {
+                    element.style[prop] = styles[prop] || '';
+                }
+            });
+        }
+
+        function applyBackground(element, bgType, bgImage, bgColor) {
+            const isUrl = (str) => String(str).startsWith('http') || String(str).startsWith('//');
+            let videoEl = element.querySelector('.panel-background-video');
+            if (videoEl) videoEl.remove();
+
+            if (bgType === 'video' && bgImage) {
+                element.style.backgroundImage = 'none';
+                element.style.backgroundColor = 'transparent';
+                videoEl = document.createElement('video');
+                videoEl.className = 'panel-background-video';
+                videoEl.src = isUrl(bgImage) ? bgImage : 'res/' + bgImage;
+                videoEl.autoplay = true; videoEl.muted = true; videoEl.loop = true;
+                element.insertBefore(videoEl, element.firstChild);
+            } else if (bgType === 'image' && bgImage) {
+                element.style.backgroundImage = `url('${isUrl(bgImage) ? bgImage : 'res/' + bgImage}')`;
+                element.style.backgroundSize = 'cover';
+                element.style.backgroundPosition = 'center';
+                element.style.backgroundColor = 'transparent';
+            } else {
+                element.style.backgroundImage = 'none';
+                element.style.backgroundColor = bgColor;
+            }
+        }
+        
+        function renderScene() {
+            const sceneData = appData.scenes[appData.currentSceneIndex];
+            if (!sceneData) return;
+            const isUrl = (str) => String(str).startsWith('http') || String(str).startsWith('//');
+            
+            mainContainer.style.gap = (sceneData.main.panelGap || 1) + 'rem';
+            mainContainer.style.padding = (sceneData.main.padding || 1) + 'rem';
+            mainContainer.style.outline = sceneData.main.outline || 'none';
+            
+            const applyPosition = (panel, width, positionX) => {
+                const totalMargin = 100 - (width || 100);
+                const leftMargin = (totalMargin / 2) + (totalMargin / 2) * ((positionX || 0) / 50);
+                panel.style.marginLeft = leftMargin + '%';
+                panel.style.marginRight = (totalMargin - leftMargin) + '%';
+                panel.style.width = (width || 100) + '%';
+            };
+            applyPosition(mediaPanel, sceneData.media.width, sceneData.media.positionX);
+            applyPosition(dialoguePanel, sceneData.dialogue.panel.width, sceneData.dialogue.panel.positionX);
+            applyPosition(controlsPanel, sceneData.controls.panel.width, sceneData.controls.panel.positionX);
+
+            mediaPanel.style.height = (sceneData.main.mediaPanelHeight || 40) + '%';
+            dialoguePanel.style.height = (sceneData.main.dialoguePanelHeight || 25) + '%';
+            controlsPanel.style.height = (sceneData.main.optionsPanelHeight || 25) + '%';
+            
+            document.body.style.backgroundImage = 'none';
+            sceneBackgroundVideo.style.display = 'none';
+            if (sceneData.main.backgroundType === 'video' && sceneData.main.backgroundImage) {
+                document.body.style.backgroundColor = '#000000';
+                sceneBackgroundVideo.src = isUrl(sceneData.main.backgroundImage) ? sceneData.main.backgroundImage : 'res/' + sceneData.main.backgroundImage;
+                sceneBackgroundVideo.muted = sceneData.main.backgroundVideoMuted;
+                sceneBackgroundVideo.volume = (sceneData.main.backgroundVideoVolume || 100) / 100;
+                sceneBackgroundVideo.style.display = 'block';
+            } else if (sceneData.main.backgroundType === 'image' && sceneData.main.backgroundImage) {
+                document.body.style.backgroundColor = '#000000';
+                document.body.style.backgroundImage = `url('${isUrl(sceneData.main.backgroundImage) ? sceneData.main.backgroundImage : 'res/' + sceneData.main.backgroundImage}')`;
+                document.body.style.backgroundSize = (sceneData.main.backgroundScale || 100) + '%';
+            } else {
+                document.body.style.backgroundColor = sceneData.main.backgroundColor;
+            }
+            
+            mediaPanel.innerHTML = '';
+            const mediaStyles = { ...sceneData.media };
+            delete mediaStyles.mediaFile;
+            delete mediaStyles.mediaFileMuted;
+            delete mediaStyles.backgroundType;
+            delete mediaStyles.backgroundImage;
+            delete mediaStyles.width;
+            delete mediaStyles.contentScale;
+            delete mediaStyles.positionX;
+            applyStyles(mediaPanel, mediaStyles);
+            applyBackground(mediaPanel, sceneData.media.backgroundType, sceneData.media.backgroundImage, sceneData.media.backgroundColor);
+
+            const mediaFile = sceneData.media.mediaFile;
+            const mediaType = sceneData.media.mediaFile ? (sceneData.media.mediaFile.match(/\.(mp4|webm|ogg)$/i) ? 'video' : 'image') : null;
+            
+            mediaPanel.style.display = 'flex';
+            mediaPanel.style.alignItems = 'center';
+            mediaPanel.style.justifyContent = 'center';
+
+            if (mediaFile) {
+                const mediaContent = document.createElement('div');
+                const contentScale = sceneData.media.contentScale || 100;
+                mediaContent.style.width = contentScale + '%';
+                mediaContent.style.height = contentScale + '%';
+                mediaContent.style.backgroundSize = 'cover';
+                mediaContent.style.backgroundPosition = 'center';
+                
+                if (mediaType === 'image') {
+                    mediaContent.style.backgroundImage = `url('${isUrl(mediaFile) ? mediaFile : 'res/' + mediaFile}')`;
+                } else if (mediaType === 'video') {
+                    const video = document.createElement('video');
+                    video.autoplay = true; 
+                    video.muted = sceneData.media.mediaFileMuted; 
+                    video.loop = true;
+                    video.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+                    video.src = isUrl(mediaFile) ? mediaFile : 'res/' + mediaFile;
+                    mediaContent.appendChild(video);
+                }
+                mediaPanel.appendChild(mediaContent);
+            } else if (sceneData.media.backgroundType === 'color') {
+                 mediaPanel.innerHTML = 'Click to edit media';
+            }
+            
+            applyStyles(dialoguePanel, sceneData.dialogue.panel);
+            applyBackground(dialoguePanel, sceneData.dialogue.panel.backgroundType, sceneData.dialogue.panel.backgroundImage, sceneData.dialogue.panel.backgroundColor);
+
+            speakerName.textContent = sceneData.dialogue.speaker;
+            dialogueText.textContent = sceneData.dialogue.text;
+            applyStyles(speakerName, sceneData.dialogue.speakerStyle);
+            applyStyles(dialogueText, sceneData.dialogue.textStyle);
+            dialogueText.style.lineHeight = sceneData.dialogue.lineHeight;
+
+            if (!sceneData.dialogue.speaker) {
+                speakerName.style.display = 'none';
+            } else {
+                speakerName.style.display = 'block';
+            }
+            
+            applyStyles(controlsPanel, sceneData.controls.panel);
+            applyBackground(controlsPanel, sceneData.controls.panel.backgroundType, sceneData.controls.panel.backgroundImage, sceneData.controls.panel.backgroundColor);
+
+            controlsPanel.style.display = sceneData.controls.panel.layout === 'grid' ? 'grid' : 'flex';
+            controlsPanel.style.gridTemplateColumns = `repeat(${sceneData.controls.panel.columns}, 1fr)`;
+            
+            controlsPanel.innerHTML = '';
+            sceneData.controls.buttons.forEach((option, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'control-option-btn';
+                btn.textContent = option.text;
+                btn.dataset.index = index;
+                btn.draggable = true;
+                
+                applyStyles(btn, option.style);
+                applyBackground(btn, option.style.backgroundType, option.style.backgroundImage, option.style.backgroundColor);
+                
+                btn.addEventListener('click', (e) => { e.stopPropagation(); openSettings('control', index); });
+                
+                btn.addEventListener('mouseenter', () => {
+                    if (!option.hoverHint) return;
+                    const tooltip = doc('editorTooltip');
+                    tooltip.textContent = option.hoverHint;
+                    applyStyles(tooltip, option.hintStyle);
+                    applyBackground(tooltip, option.hintStyle.backgroundType, option.hintStyle.backgroundImage, option.hintStyle.backgroundColor);
+                    
+                    const rect = btn.getBoundingClientRect();
+                    tooltip.style.display = 'block';
+                    const tooltipRect = tooltip.getBoundingClientRect();
+                    
+                    let top = rect.top - tooltipRect.height - 5;
+                    if (top < 0) {
+                        top = rect.bottom + 5;
+                    }
+                    
+                    let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+                    if (left < 0) left = 5;
+                    if (left + tooltipRect.width > window.innerWidth) left = window.innerWidth - tooltipRect.width - 5;
+
+                    tooltip.style.top = `${top}px`;
+                    tooltip.style.left = `${left}px`;
+                });
+                
+                btn.addEventListener('mouseleave', () => {
+                    doc('editorTooltip').style.display = 'none';
+                });
+
+                controlsPanel.appendChild(btn);
+            });
+            controlsPanel.appendChild(addOptionBtn);
+        }
+        
+        function showPrompt(title, body, onConfirm, showCancel = false) {
+            promptHeader.textContent = title;
+            promptBody.innerHTML = body;
+            promptConfirmBtn.onclick = onConfirm;
+            promptCancelBtn.style.display = showCancel ? 'inline-block' : 'none';
+            promptCancelBtn.onclick = () => promptModal.style.display = 'none';
+            promptModal.style.display = 'flex';
+        }
+        
+        function createSliderGroup(id, label, value, min, max, step) {
+             return `<div class="form-group"><label for="${id}">${label}</label><div class="slider-group"><input type="range" id="${id}Range" value="${value}" min="${min}" max="${max}" step="${step}"><input type="number" id="${id}Number" value="${value}" min="${min}" max="${max}" step="${step}"></div></div>`;
+        }
+        
+        function createPanelStyleFields(idPrefix, dataObject) {
+            const onColorPickerChange = `const textEl = doc('${idPrefix}BackgroundColor'); const alpha = doc('${idPrefix}BackgroundAlphaNumber').value; textEl.value = combineColorAlpha(this.value, alpha); textEl.dispatchEvent(new Event('input', { bubbles: true }));`;
+            const onColorTextChange = `const alphaEl = doc('${idPrefix}BackgroundAlphaNumber'); const rangeEl = doc('${idPrefix}BackgroundAlphaRange'); const pickerEl = doc('${idPrefix}BackgroundColorPicker'); const alpha = getAlphaFromColor(this.value); if(alphaEl) { alphaEl.value = alpha; rangeEl.value = alpha; } if(pickerEl) { pickerEl.value = colorToHex(getColorWithoutAlpha(this.value)); }`;
+            const onAlphaChange = `const textEl = doc('${idPrefix}BackgroundColor'); const alpha = doc('${idPrefix}BackgroundAlphaNumber').value; textEl.value = combineColorAlpha(textEl.value, alpha); textEl.dispatchEvent(new Event('input', { bubbles: true }));`;
+
+            const onBorderColorChange = `const el = doc('${idPrefix}BorderColor'); el.value = this.value; el.dispatchEvent(new Event('input', { bubbles: true }));`;
+            const bgType = dataObject.backgroundType || 'color';
+            const bgColor = dataObject.backgroundColor || 'transparent';
+            const bgAlpha = getAlphaFromColor(bgColor);
+            const hexColor = colorToHex(getColorWithoutAlpha(bgColor));
+
+            return `<h4>Panel Styling</h4>
+                <div class="form-group"><label>Background Type</label><select id="${idPrefix}BackgroundType" onchange="toggleBgFields(this, '${idPrefix}')">
+                    <option value="color" ${bgType === 'color' ? 'selected' : ''}>Color</option>
+                    <option value="image" ${bgType === 'image' ? 'selected' : ''}>Image</option>
+                    <option value="video" ${bgType === 'video' ? 'selected' : ''}>Video</option>
+                </select></div>
+                <div class="form-group" id="${idPrefix}BgColorGroup" style="display: ${bgType === 'color' ? 'flex' : 'none'};"><label>Background Color (rgba allowed)</label><div class="color-input-wrapper"><input type="text" id="${idPrefix}BackgroundColor" value="${bgColor}" oninput="${onColorTextChange}"><input type="color" id="${idPrefix}BackgroundColorPicker" onchange="${onColorPickerChange}" value="${hexColor}"></div></div>
+                <div class="form-group" id="${idPrefix}BgAlphaGroup" style="display: ${bgType === 'color' ? 'block' : 'none'};" oninput="${onAlphaChange}">${createSliderGroup(`${idPrefix}BackgroundAlpha`, 'Background Alpha (%)', bgAlpha, 0, 100, 1)}</div>
+                <div class="form-group" id="${idPrefix}BgImageGroup" style="display: ${bgType !== 'color' ? 'block' : 'none'};"><label>Image/Video URL (from 'res' or URL)</label><input type="text" id="${idPrefix}BackgroundImage" value="${dataObject.backgroundImage || ''}"></div>
+                
+                ${createSliderGroup(`${idPrefix}BorderWidth`, 'Border Width (px)', parseFloat(dataObject.borderWidth || 0), 0, 20, 1)}
+                <div class="form-group"><label>Border Color</label><div class="color-input-wrapper"><input type="text" id="${idPrefix}BorderColor" value="${dataObject.borderColor}"><input type="color" onchange="${onBorderColorChange}" value="${colorToHex(dataObject.borderColor)}"></div></div>
+                <div class="form-group"><label>Border Style</label><select id="${idPrefix}BorderStyle">${borderStyles.map(s => `<option value="${s}" ${dataObject.borderStyle === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+                ${createSliderGroup(`${idPrefix}BorderRadius`, 'Border Radius (px)', parseFloat(dataObject.borderRadius || 0), 0, 100, 1)}
+                ${createSliderGroup(`${idPrefix}BackdropFilter`, 'Blur Effect (px)', parseFloat((dataObject.backdropFilter || 'blur(0px)').replace(/[^0-9.]/g, '') || 0), 0, 20, 1)}
+                <div class="form-group"><label>Shadow (e.g., 0 0 10px #000)</label><input type="text" id="${idPrefix}BoxShadow" value="${dataObject.boxShadow || 'none'}"></div>`;
+        }
+
+
+        function createFontStyleFields(idPrefix, dataObject) {
+            const onFontColorChange = `const el = doc('${idPrefix}Color'); el.value = this.value; el.dispatchEvent(new Event('input', { bubbles: true }));`;
+            const d = dataObject || {};
+            return `<h4>Font Styling</h4>
+                <div class="form-group"><label>Font Color</label><div class="color-input-wrapper"><input type="text" id="${idPrefix}Color" value="${d.color || '#ffffff'}"><input type="color" onchange="${onFontColorChange}" value="${colorToHex(d.color || '#ffffff')}"></div></div>
+                ${createSliderGroup(`${idPrefix}FontSize`, 'Font Size (em)', parseFloat(d.fontSize || 1), 0.5, 5, 0.1)}
+                <div class="form-group"><label>Font Family</label><input type="text" list="fontlist" id="${idPrefix}FontFamily" value="${d.fontFamily || 'Monospace, monospace'}"><datalist id="fontlist">${standardFonts.map(f => `<option value="${f}"></option>`).join('')}</datalist></div>
+                <div class="form-group"><label>Font Weight</label><select id="${idPrefix}FontWeight">${fontWeights.map(s => `<option value="${s}" ${d.fontWeight === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+                <div class="form-group"><label>Font Style</label><select id="${idPrefix}FontStyle">${fontStyles.map(s => `<option value="${s}" ${d.fontStyle === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+                <div class="form-group"><label>Text Decoration</label><select id="${idPrefix}TextDecoration">${textDecorations.map(s => `<option value="${s}" ${d.textDecoration === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>`;
+        }
+
+        function applyLivePreview() {
+            if (!doc('settingsModal') || doc('settingsModal').style.display === 'none') return;
+            const getVal = (id, suffix = '') => doc(id) ? doc(id).value + suffix : '';
+            const getNum = (id, suffix = '') => doc(id + 'Number') ? doc(id + 'Number').value + suffix : '';
+            
+            const applyPosition = (panel, widthId, positionId) => {
+                if(!doc(widthId+'Number') || !doc(positionId+'Number')) return;
+                const width = parseFloat(getNum(widthId));
+                const positionX = parseFloat(getNum(positionId));
+                const totalMargin = 100 - width;
+                const leftMargin = (totalMargin / 2) + (totalMargin / 2) * (positionX / 50);
+                panel.style.marginLeft = leftMargin + '%';
+                panel.style.marginRight = (totalMargin - leftMargin) + '%';
+                panel.style.width = width + '%';
+            };
+            applyPosition(mediaPanel, 'mediaPanelWidth', 'mediaPositionX');
+            applyPosition(dialoguePanel, 'dialoguePanelWidth', 'dialoguePositionX');
+            applyPosition(controlsPanel, 'optionsPanelWidth', 'controlsPositionX');
+
+            mainContainer.style.gap = getNum('panelGap', 'rem');
+            mainContainer.style.padding = getNum('mainPadding', 'rem');
+            mainContainer.style.outline = getVal('mainOutline');
+
+            const isUrl = (str) => String(str).startsWith('http') || String(str).startsWith('//');
+            
+            document.body.style.backgroundImage = 'none';
+            sceneBackgroundVideo.style.display = 'none';
+            const mainBgType = getVal('mainBackgroundType');
+            const mainBgImage = getVal('mainBackgroundImage');
+
+            if (mainBgType === 'video' && mainBgImage) {
+                document.body.style.backgroundColor = '#000000';
+                sceneBackgroundVideo.src = isUrl(mainBgImage) ? mainBgImage : 'res/' + mainBgImage;
+                sceneBackgroundVideo.muted = doc('mainBackgroundVideoMuted').checked;
+                sceneBackgroundVideo.volume = getNum('mainBackgroundVideoVolume') / 100;
+                sceneBackgroundVideo.style.display = 'block';
+            } else if (mainBgType === 'image' && mainBgImage) {
+                document.body.style.backgroundColor = '#000000';
+                document.body.style.backgroundImage = `url('${isUrl(mainBgImage) ? mainBgImage : 'res/' + mainBgImage}')`;
+                document.body.style.backgroundSize = getNum('mainBackgroundScale', '%');
+            } else {
+                document.body.style.backgroundColor = combineColorAlpha(getVal('mainBackgroundColor'), getNum('mainBackgroundAlpha'));
+            }
+
+            mediaPanel.style.height = getNum('mediaPanelHeight', '%');
+            dialoguePanel.style.height = getNum('dialoguePanelHeight', '%');
+            controlsPanel.style.height = getNum('optionsPanelHeight', '%');
+            
+            mediaPanel.style.borderWidth = getNum('mediaBorderWidth', 'px');
+            mediaPanel.style.borderColor = getVal('mediaBorderColor');
+            mediaPanel.style.borderStyle = getVal('mediaBorderStyle');
+            mediaPanel.style.borderRadius = getNum('mediaBorderRadius', 'px');
+            mediaPanel.style.backdropFilter = `blur(${getNum('mediaBackdropFilter')}px)`;
+            mediaPanel.style.boxShadow = getVal('mediaBoxShadow');
+            applyBackground(mediaPanel, getVal('mediaBackgroundType'), getVal('mediaBackgroundImage'), combineColorAlpha(getVal('mediaBackgroundColor'), getNum('mediaBackgroundAlpha')));
+
+            mediaPanel.innerHTML = '';
+            const mediaFile = getVal('mediaFile');
+            const mediaType = mediaFile ? (mediaFile.match(/\.(mp4|webm|ogg)$/i) ? 'video' : 'image') : null;
+            
+            mediaPanel.style.display = 'flex';
+            mediaPanel.style.alignItems = 'center';
+            mediaPanel.style.justifyContent = 'center';
+
+            if (mediaFile) {
+                const mediaContent = document.createElement('div');
+                mediaContent.style.width = getNum('mediaContentScale', '%');
+                mediaContent.style.height = getNum('mediaContentScale', '%');
+                mediaContent.style.backgroundSize = 'cover';
+                mediaContent.style.backgroundPosition = 'center';
+                
+                if (mediaType === 'image') {
+                    mediaContent.style.backgroundImage = `url('${isUrl(mediaFile) ? mediaFile : 'res/' + mediaFile}')`;
+                } else if (mediaType === 'video') {
+                    const video = document.createElement('video');
+                    video.autoplay = true; 
+                    video.muted = doc('mediaFileMuted').checked; 
+                    video.loop = true;
+                    video.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+                    video.src = isUrl(mediaFile) ? mediaFile : 'res/' + mediaFile;
+                    mediaContent.appendChild(video);
+                }
+                mediaPanel.appendChild(mediaContent);
+            } else if (getVal('mediaBackgroundType') === 'color') {
+                mediaPanel.innerHTML = 'Click to edit media';
+            }
+
+            applyBackground(dialoguePanel, getVal('dialoguePanelBackgroundType'), getVal('dialoguePanelBackgroundImage'), combineColorAlpha(getVal('dialoguePanelBackgroundColor'), getNum('dialoguePanelBackgroundAlpha')));
+            dialoguePanel.style.borderWidth = getNum('dialoguePanelBorderWidth', 'px');
+            dialoguePanel.style.borderColor = getVal('dialoguePanelBorderColor');
+            dialoguePanel.style.borderStyle = getVal('dialoguePanelBorderStyle');
+            dialoguePanel.style.borderRadius = getNum('dialoguePanelBorderRadius', 'px');
+            dialoguePanel.style.backdropFilter = `blur(${getNum('dialoguePanelBackdropFilter')}px)`;
+            dialoguePanel.style.boxShadow = getVal('dialoguePanelBoxShadow');
+
+            speakerName.style.color = getVal('speakerColor');
+            speakerName.style.fontSize = getNum('speakerFontSize', 'em');
+            dialogueText.style.color = getVal('textColor');
+            dialogueText.style.fontSize = getNum('textFontSize', 'em');
+            
+            const speakerVal = getVal('dialogueSpeaker');
+            speakerName.textContent = speakerVal;
+            if (!speakerVal) {
+                speakerName.style.display = 'none';
+            } else {
+                speakerName.style.display = 'block';
+            }
+            dialogueText.textContent = getVal('dialogueTextContent');
+
+
+            applyBackground(controlsPanel, getVal('controlsPanelBackgroundType'), getVal('controlsPanelBackgroundImage'), combineColorAlpha(getVal('controlsPanelBackgroundColor'), getNum('controlsPanelBackgroundAlpha')));
+            controlsPanel.style.borderWidth = getNum('controlsPanelBorderWidth', 'px');
+            controlsPanel.style.borderColor = getVal('controlsPanelBorderColor');
+            controlsPanel.style.borderStyle = getVal('controlsPanelBorderStyle');
+            controlsPanel.style.borderRadius = getNum('controlsPanelBorderRadius', 'px');
+            controlsPanel.style.backdropFilter = `blur(${getNum('controlsPanelBackdropFilter')}px)`;
+            controlsPanel.style.boxShadow = getVal('controlsPanelBoxShadow');
+        }
+        
+        function openSettings(target, index = -1) {
+            originalStateBeforeEdit = JSON.stringify(appData); 
+            currentEditTarget = target; 
+            currentEditIndex = index;
+            const sceneData = appData.scenes[appData.currentSceneIndex];
+            
+            if (target === 'control') {
+                const control = sceneData.controls.buttons[index]; 
+                modalHeader.textContent = 'Control Option Settings'; 
+                deleteBtn.style.display = 'block';
+                const onActiveBgColorChange = `const el = doc('controlActiveBgColor'); el.value = this.value; el.dispatchEvent(new Event('input', { bubbles: true }));`;
+                const onActiveBorderColorChange = `const el = doc('controlActiveBorderColor'); el.value = this.value; el.dispatchEvent(new Event('input', { bubbles: true }));`;
+                
+                const html = `<div class="tabs"><button class="tab-button active" data-tab="controlContent">Content</button><button class="tab-button" data-tab="controlStyle">Button Style</button><button class="tab-button" data-tab="controlHint">Hint Style</button><button class="tab-button" data-tab="controlAudio">Audio</button></div>
+                
+                <div id="tab-controlContent" class="tab-content active">
+                    <div class="form-group"><label>Button Text</label><input type="text" id="controlText" value="${control.text}"></div>
+                    <div class="form-group"><label>Target Scene Name</label><input type="text" id="controlTarget" value="${control.targetScene}"></div>
+                    <div class="form-group"><label>Hover Hint</label><input type="text" id="controlHint" value="${control.hoverHint || ''}"></div>
+                </div>
+                
+                <div id="tab-controlAudio" class="tab-content">
+                    <div class="form-group"><label>Click Sound File (from res/audio or URL)</label><input type="text" id="controlClickSound" value="${control.clickSound || ''}"></div>
+                    <div class="form-group"><label>Click Sound Source</label><select id="controlClickSoundSource">
+                        <option value="local" ${control.clickSoundSource === 'local' ? 'selected' : ''}>Local</option>
+                        <option value="url" ${control.clickSoundSource === 'url' ? 'selected' : ''}>URL</option>
+                    </select></div>
+                    ${createSliderGroup('controlClickSoundVolume', 'Click Sound Volume (%)', control.clickSoundVolume || 100, 0, 100, 1)}
+                </div>
+
+                <div id="tab-controlStyle" class="tab-content master-tab-content">
+                    <button type="button" id="syncStyleToAllBtn" style="width: 100%; margin-bottom: 1rem; background-color: #004080;">Sync Style to All Options</button>
+                    <div class="tabs">
+                        <button class="tab-button active" data-tab="stylePanel">Panel</button>
+                        <button class="tab-button" data-tab="styleFont">Font</button>
+                        <button class="tab-button" data-tab="styleClicked">Clicked</button>
+                    </div>
+                    <div id="tab-stylePanel" class="tab-content active">${createPanelStyleFields('control', control.style)}</div>
+                    <div id="tab-styleFont" class="tab-content">${createFontStyleFields('controlFont', control.style)}</div>
+                    <div id="tab-styleClicked" class="tab-content">
+                        <h4>Clicked Style</h4>
+                        <div class="form-group"><label>Background Color</label><div class="color-input-wrapper"><input type="text" id="controlActiveBgColor" value="${control.activeStyle.backgroundColor}"><input type="color" onchange="${onActiveBgColorChange}" value="${colorToHex(control.activeStyle.backgroundColor)}"></div></div>
+                        <div class="form-group"><label>Border Color</label><div class="color-input-wrapper"><input type="text" id="controlActiveBorderColor" value="${control.activeStyle.borderColor}"><input type="color" onchange="${onActiveBorderColorChange}" value="${colorToHex(control.activeStyle.borderColor)}"></div></div>
+                    </div>
+                </div>
+
+                <div id="tab-controlHint" class="tab-content master-tab-content">
+                    <div class="tabs">
+                        <button class="tab-button active" data-tab="hintPanel">Panel</button>
+                        <button class="tab-button" data-tab="hintFont">Font</button>
+                    </div>
+                    <div id="tab-hintPanel" class="tab-content active">${createPanelStyleFields('hint', control.hintStyle)}</div>
+                    <div id="tab-hintFont" class="tab-content">${createFontStyleFields('hintFont', control.hintStyle)}</div>
+                </div>`;
+                
+                modalBody.innerHTML = html;
+
+                doc('syncStyleToAllBtn').addEventListener('click', () => {
+                    const styleToSync = getPanelStyleValues('control');
+                    getFontStyleValues('controlFont', styleToSync);
+                    const activeStyleToSync = { backgroundColor: doc('controlActiveBgColor').value, borderColor: doc('controlActiveBorderColor').value };
+                    const hintStyleToSync = getPanelStyleValues('hint');
+                    getFontStyleValues('hintFont', hintStyleToSync);
+                    
+                    const currentScene = appData.scenes[appData.currentSceneIndex];
+                    currentScene.controls.buttons.forEach((btn, i) => {
+                        btn.style = JSON.parse(JSON.stringify(styleToSync));
+                        btn.activeStyle = JSON.parse(JSON.stringify(activeStyleToSync));
+                        btn.hintStyle = JSON.parse(JSON.stringify(hintStyleToSync));
+                    });
+                    
+                    showPrompt('Styles Synced', 'All buttons in this scene have been updated. Save settings to keep this change.', () => promptModal.style.display = 'none');
+                });
+
+            } else {
+                modalHeader.textContent = 'Scene Settings';
+                deleteBtn.style.display = 'none';
+                
+                const onMainBgColorChange = `const textEl = doc('mainBackgroundColor'); const alpha = doc('mainBackgroundAlphaNumber').value; textEl.value = combineColorAlpha(this.value, alpha); textEl.dispatchEvent(new Event('input', { bubbles: true }));`;
+                const onMainBgTextChange = `const alphaEl = doc('mainBackgroundAlphaNumber'); const rangeEl = doc('mainBackgroundAlphaRange'); const pickerEl = doc('mainBackgroundColorPicker'); const alpha = getAlphaFromColor(this.value); if(alphaEl) { alphaEl.value = alpha; rangeEl.value = alpha; } if(pickerEl) { pickerEl.value = colorToHex(getColorWithoutAlpha(this.value)); }`;
+                const onMainBgAlphaChange = `const textEl = doc('mainBackgroundColor'); const alpha = doc('mainBackgroundAlphaNumber').value; textEl.value = combineColorAlpha(textEl.value, alpha); textEl.dispatchEvent(new Event('input', { bubbles: true }));`;
+
+                const mainBgColor = sceneData.main.backgroundColor || '#000000';
+                const mainBgAlpha = getAlphaFromColor(mainBgColor);
+                const mainHexColor = colorToHex(getColorWithoutAlpha(mainBgColor));
+
+                const sceneTabHtml = `<div class="tabs"><button class="tab-button active" data-tab="sceneLayout">Layout</button><button class="tab-button" data-tab="sceneBg">Background</button><button class="tab-button" data-tab="sceneAudio">Audio</button></div>
+                <div id="tab-sceneLayout" class="tab-content active">${createSliderGroup('panelGap', 'Panel Gap (rem)', sceneData.main.panelGap, 0, 5, 0.1)}${createSliderGroup('mainPadding', 'Padding (rem)', sceneData.main.padding, 0, 5, 0.1)}<div class="form-group"><label>Outline (e.g., 1px solid #333)</label><input type="text" id="mainOutline" value="${sceneData.main.outline || 'none'}"></div></div>
+                <div id="tab-sceneBg" class="tab-content">
+                    <div class="form-group"><label>Background Type</label><select id="mainBackgroundType" onchange="toggleBgFields(this, 'main')">
+                        <option value="color" ${sceneData.main.backgroundType === 'color' ? 'selected' : ''}>Color</option>
+                        <option value="image" ${sceneData.main.backgroundType === 'image' ? 'selected' : ''}>Image</option>
+                        <option value="video" ${sceneData.main.backgroundType === 'video' ? 'selected' : ''}>Video</option>
+                    </select></div>
+                    <div class="form-group" id="mainBgColorGroup" style="display: ${sceneData.main.backgroundType === 'color' ? 'flex' : 'none'};"><label>Background Color (rgba allowed)</label><div class="color-input-wrapper"><input type="text" id="mainBackgroundColor" value="${mainBgColor}" oninput="${onMainBgTextChange}"><input type="color" id="mainBackgroundColorPicker" onchange="${onMainBgColorChange}" value="${mainHexColor}"></div></div>
+                    <div class="form-group" id="mainBgAlphaGroup" style="display: ${sceneData.main.backgroundType === 'color' ? 'block' : 'none'};" oninput="${onMainBgAlphaChange}">${createSliderGroup('mainBackgroundAlpha', 'Background Alpha (%)', mainBgAlpha, 0, 100, 1)}</div>
+                    <div class="form-group" id="mainBgImageGroup" style="display: ${sceneData.main.backgroundType !== 'color' ? 'block' : 'none'};"><label>Background Image/Video (from 'res' or URL)</label><input type="text" id="mainBackgroundImage" value="${sceneData.main.backgroundImage}"></div>
+                    <div class="form-group" id="mainBgVideoMuteGroup" style="display: ${sceneData.main.backgroundType === 'video' ? 'flex' : 'none'}; align-items: center;">
+                        <input type="checkbox" id="mainBackgroundVideoMuted" ${sceneData.main.backgroundVideoMuted ? 'checked' : ''} style="width: auto; margin-right: 10px;" onchange="document.getElementById('mainBgVideoVolumeGroup').style.display = this.checked ? 'none' : 'block';">
+                        <label for="mainBackgroundVideoMuted" style="margin-bottom: 0; color: var(--text-color);">Mute Background Video</label>
+                    </div>
+                    <div id="mainBgVideoVolumeGroup" style="display: ${sceneData.main.backgroundType === 'video' && !sceneData.main.backgroundVideoMuted ? 'block' : 'none'};">
+                        ${createSliderGroup('mainBackgroundVideoVolume', 'BG Video Volume (%)', sceneData.main.backgroundVideoVolume || 100, 0, 100, 1)}
+                    </div>
+                    ${createSliderGroup('mainBackgroundScale', 'BG Image Zoom (%)', sceneData.main.backgroundScale || 100, 50, 200, 1)}
+                </div>
+                <div id="tab-sceneAudio" class="tab-content">
+                    <div class="form-group"><label>Background Audio/Video File (from res/audio or URL)</label><input type="text" id="mainAudioFile" value="${sceneData.main.audioFile}"></div>
+                    <div class="form-group"><label>Audio Source</label><select id="mainAudioFileSource">
+                        <option value="local" ${sceneData.main.audioFileSource === 'local' ? 'selected' : ''}>Local</option>
+                        <option value="url" ${sceneData.main.audioFileSource === 'url' ? 'selected' : ''}>URL</option>
+                    </select></div>
+                    ${createSliderGroup('mainAudioVolume', 'Background Volume (%)', sceneData.main.audioVolume || 100, 0, 100, 1)}
+                </div>`;
+                
+                const displayTabHtml = `<div class="tabs"><button class="tab-button active" data-tab="displayLayout">Layout</button><button class="tab-button" data-tab="displayContent">Content</button><button class="tab-button" data-tab="displayStyling">Styling</button></div>
+                <div id="tab-displayLayout" class="tab-content active">${createSliderGroup('mediaPanelHeight', 'Panel Height (%)', sceneData.main.mediaPanelHeight, 5, 90, 1)}${createSliderGroup('mediaPanelWidth', 'Panel Width (%)', sceneData.media.width, 30, 100, 1)}${createSliderGroup('mediaPositionX', 'Horizontal Position', sceneData.media.positionX || 0, -50, 50, 1)}</div>
+                <div id="tab-displayContent" class="tab-content">
+                    <div class="form-group"><label>Media File Name / URL (Image, GIF, Video)</label><input type="text" id="mediaFile" value="${sceneData.media.mediaFile}"></div>
+                    <div class="form-group" style="display: flex; align-items: center;">
+                        <input type="checkbox" id="mediaFileMuted" ${sceneData.media.mediaFileMuted ? 'checked' : ''} style="width: auto; margin-right: 10px;">
+                        <label for="mediaFileMuted" style="margin-bottom: 0; color: var(--text-color);">Mute Video Audio</label>
+                    </div>
+                    ${createSliderGroup('mediaContentScale', 'Content Padding/Zoom (%)', sceneData.media.contentScale || 100, 50, 150, 1)}
+                </div>
+                <div id="tab-displayStyling" class="tab-content">${createPanelStyleFields('media', sceneData.media)}</div>`;
+                
+                const dialogueTabHtml = `<div class="tabs">
+                    <button class="tab-button active" data-tab="dialogueContent">Content</button>
+                    <button class="tab-button" data-tab="dialogueStyling">Styling</button>
+                    <button class="tab-button" data-tab="dialoguePanel">Panel</button>
+                    <button class="tab-button" data-tab="dialogueAnimation">Animation</button>
+                    <button class="tab-button" data-tab="dialogueAudio">Audio</button>
+                </div>
+                <div id="tab-dialogueContent" class="tab-content active">
+                    <div class="form-group"><label>Speaker Name</label><input type="text" id="dialogueSpeaker" value="${sceneData.dialogue.speaker}"></div>
+                    <div class="form-group"><label>Dialogue Text</label><textarea id="dialogueTextContent" rows="3">${sceneData.dialogue.text}</textarea></div>
+                </div>
+                <div id="tab-dialogueStyling" class="tab-content">
+                    <div class="tabs"><button class="tab-button active" data-tab="speakerStyle">Speaker</button><button class="tab-button" data-tab="textStyle">Text</button></div>
+                    <div id="tab-speakerStyle" class="tab-content active">${createFontStyleFields('speaker', sceneData.dialogue.speakerStyle)}</div>
+                    <div id="tab-textStyle" class="tab-content">${createFontStyleFields('text', sceneData.dialogue.textStyle)}${createSliderGroup('textLineHeight', 'Line Height', sceneData.dialogue.lineHeight, 1, 3, 0.1)}</div>
+                </div>
+                <div id="tab-dialoguePanel" class="tab-content">
+                    ${createSliderGroup('dialoguePanelHeight', 'Panel Height (%)', sceneData.main.dialoguePanelHeight, 5, 90, 1)}
+                    ${createSliderGroup('dialoguePanelWidth', 'Panel Width (%)', sceneData.dialogue.panel.width, 30, 100, 1)}
+                    ${createSliderGroup('dialoguePositionX', 'Horizontal Position', sceneData.dialogue.panel.positionX || 0, -50, 50, 1)}
+                    ${createPanelStyleFields('dialoguePanel', sceneData.dialogue.panel)}
+                </div>
+                <div id="tab-dialogueAnimation" class="tab-content">
+                    <div class="form-group"><label>Text Animation</label><select id="dialogueAnimation">${animTypes.map(a => `<option value="${a}" ${sceneData.dialogue.animation === a ? 'selected' : ''}>${a}</option>`).join('')}</select></div>
+                    ${createSliderGroup('dialogueAnimationSpeed', 'Animation Speed (ms)', sceneData.dialogue.animationSpeed, 10, 200, 1)}
+                    <label>Preview</label><div id="dialoguePreview" class="dialogue-preview"></div>
+                </div>
+                <div id="tab-dialogueAudio" class="tab-content">
+                    <div class="form-group"><label>Dialogue Audio/Video File (from res/audio or URL)</label><input type="text" id="dialogueAudioFile" value="${sceneData.dialogue.audioFile}"></div>
+                    <div class="form-group"><label>Audio Source</label><select id="dialogueAudioFileSource">
+                        <option value="local" ${sceneData.dialogue.audioFileSource === 'local' ? 'selected' : ''}>Local</option>
+                        <option value="url" ${sceneData.dialogue.audioFileSource === 'url' ? 'selected' : ''}>URL</option>
+                    </select></div>
+                    ${createSliderGroup('dialogueAudioVolume', 'Dialogue Volume (%)', sceneData.dialogue.audioVolume || 100, 0, 100, 1)}
+                </div>`;
+
+                const optionsTabHtml = `<div class="tabs"><button class="tab-button active" data-tab="optionsPanel">Panel</button><button class="tab-button" data-tab="optionsLayout">Layout</button></div>
+                <div id="tab-optionsPanel" class="tab-content active">${createSliderGroup('optionsPanelHeight', 'Panel Height (%)', sceneData.main.optionsPanelHeight, 5, 90, 1)}${createSliderGroup('optionsPanelWidth', 'Panel Width (%)', sceneData.controls.panel.width, 30, 100, 1)}${createSliderGroup('controlsPositionX', 'Horizontal Position', sceneData.controls.panel.positionX || 0, -50, 50, 1)}${createPanelStyleFields('controlsPanel', sceneData.controls.panel)}</div>
+                <div id="tab-optionsLayout" class="tab-content"><div class="form-group"><label>Layout</label><select id="controlsLayout"><option value="wrap" ${sceneData.controls.panel.layout === 'wrap' ? 'selected' : ''}>Wrap</option><option value="grid" ${sceneData.controls.panel.layout === 'grid' ? 'selected' : ''}>Grid</option></select></div>${createSliderGroup('controlsColumns', 'Columns (for Grid)', sceneData.controls.panel.columns, 1, 6, 1)}</div>`;
+                
+                modalBody.innerHTML = `<div class="tabs" id="masterTabs"><button class="tab-button" data-tab="scene">Scene</button><button class="tab-button" data-tab="display">Display</button><button class="tab-button" data-tab="dialogue">Dialogue</button><button class="tab-button" data-tab="options">Options</button></div>
+                <div id="tab-scene" class="tab-content master-tab-content">${sceneTabHtml}</div>
+                <div id="tab-display" class="tab-content master-tab-content">${displayTabHtml}</div>
+                <div id="tab-dialogue" class="tab-content master-tab-content">${dialogueTabHtml}</div>
+                <div id="tab-options" class="tab-content master-tab-content">${optionsTabHtml}</div>`;
+                
+                const targetTab = target === 'media' ? 'display' : (target === 'controls' ? 'options' : target || 'scene');
+                modalBody.querySelector(`.tab-button[data-tab="${targetTab}"]`).classList.add('active');
+                modalBody.querySelector(`#tab-${targetTab}`).classList.add('active');
+            }
+            
+            settingsModal.style.display = 'flex';
+            
+            modalBody.querySelectorAll('.tab-button').forEach(button => button.addEventListener('click', (e) => {
+                const tabGroup = e.target.parentElement;
+                tabGroup.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                
+                const contentContainer = tabGroup.nextElementSibling.parentElement;
+                contentContainer.querySelectorAll(':scope > .tab-content').forEach(content => content.classList.remove('active'));
+                
+                const tabContentId = 'tab-' + e.target.dataset.tab;
+                const tabContent = contentContainer.querySelector('#' + tabContentId);
+                
+                if (tabContent) {
+                    tabContent.classList.add('active');
+                } else {
+                    console.error('No tab content found for:', e.target.dataset.tab);
+                }
+            }));
+
+            modalBody.querySelectorAll('.slider-group').forEach(group => {
+                const range = group.querySelector('input[type="range"]');
+                const number = group.querySelector('input[type="number"]');
+                range.oninput = () => { number.value = range.value; number.dispatchEvent(new Event('input', { bubbles: true })); };
+                number.oninput = () => { range.value = number.value; range.dispatchEvent(new Event('input', { bubbles: true })); };
+            });
+            if (doc('dialoguePreview')) setupDialoguePreview();
+            
+            modalBody.removeEventListener('input', applyLivePreview);
+            modalBody.addEventListener('input', applyLivePreview);
+            modalBody.removeEventListener('change', applyLivePreview);
+            modalBody.addEventListener('change', applyLivePreview);
+        }
+        
+        function setupDialoguePreview() {
+             let previewInterval;
+            const previewEl = doc('dialoguePreview');
+            if (!previewEl) return;
+            const inputs = settingsModal.querySelectorAll('#dialogueAnimation, #dialogueAnimationSpeedNumber');
+            function runPreview() {
+                clearInterval(previewInterval);
+                previewEl.textContent = ''; previewEl.style.cssText = 'transition: none; opacity: 1; transform: none; filter: none;';
+                const text = "The quick brown fox...";
+                const animation = doc('dialogueAnimation').value;
+                const speed = parseInt(doc('dialogueAnimationSpeedNumber').value) || 50;
+                let i = 0;
+                const animations = {
+                    'typing': () => { function type() { if (i < text.length) { previewEl.textContent += text.charAt(i++); previewInterval = setTimeout(type, speed); } } type(); },
+                    'glitch-type': () => { function glitch() { if (i < text.length) { previewEl.textContent = text.slice(0, i) + String.fromCharCode(33 + Math.random() * 94); previewInterval = setTimeout(() => { i++; previewEl.textContent = text.slice(0, i); glitch(); }, speed); } } glitch(); },
+                    'fade': () => { previewEl.textContent = text; previewEl.style.opacity = 0; setTimeout(() => { previewEl.style.transition = 'opacity 0.5s'; previewEl.style.opacity = 1; }, 10); },
+                    'zoom-in': () => { previewEl.textContent = text; previewEl.style.opacity = 0; previewEl.style.transform = 'scale(0.8)'; setTimeout(() => { previewEl.style.transition = 'all 0.3s'; previewEl.style.opacity = 1; previewEl.style.transform = 'scale(1)'; }, 10); },
+                    'blur-in': () => { previewEl.textContent = text; previewEl.style.opacity = 0; previewEl.style.filter = 'blur(5px)'; setTimeout(() => { previewEl.style.transition = 'all 0.3s'; previewEl.style.opacity = 1; previewEl.style.filter = 'blur(0)'; }, 10); },
+                    'slide-up': () => { previewEl.textContent = text; previewEl.style.opacity = 0; previewEl.style.transform = 'translateY(20px)'; setTimeout(() => { previewEl.style.transition = 'all 0.3s'; previewEl.style.opacity = 1; previewEl.style.transform = 'translateY(0)'; }, 10); },
+                    'slide-left': () => { previewEl.textContent = text; previewEl.style.opacity = 0; previewEl.style.transform = 'translateX(20px)'; setTimeout(() => { previewEl.style.transition = 'all 0.3s'; previewEl.style.opacity = 1; previewEl.style.transform = 'translateX(0)'; }, 10); },
+                    'none': () => { previewEl.textContent = text; }
+                };
+                (animations[animation] || animations['none'])();
+            }
+            inputs.forEach(input => input.addEventListener('input', runPreview));
+            runPreview();
+        }
+
+        function closeSettings() {
+            settingsModal.style.display = 'none';
+            if (originalStateBeforeEdit) { appData = JSON.parse(originalStateBeforeEdit); renderScene(); }
+            originalStateBeforeEdit = null; currentEditTarget = null; currentEditIndex = -1;
+        }
+
+        function getPanelStyleValues(idPrefix) {
+            const el = (id) => doc(id);
+            const data = {
+                backgroundColor: combineColorAlpha(el(`${idPrefix}BackgroundColor`).value, el(`${idPrefix}BackgroundAlphaNumber`).value),
+                borderWidth: el(`${idPrefix}BorderWidthNumber`).value + 'px',
+                borderColor: el(`${idPrefix}BorderColor`).value, borderStyle: el(`${idPrefix}BorderStyle`).value,
+                borderRadius: el(`${idPrefix}BorderRadiusNumber`).value + 'px',
+            };
+            if (el(`${idPrefix}BackgroundType`)) {
+                data.backgroundType = el(`${idPrefix}BackgroundType`).value;
+                data.backgroundImage = el(`${idPrefix}BackgroundImage`).value;
+            }
+            if (el(`${idPrefix}BackdropFilterNumber`)) data.backdropFilter = `blur(${el(`${idPrefix}BackdropFilterNumber`).value}px)`;
+            if (el(`${idPrefix}BoxShadow`)) data.boxShadow = el(`${idPrefix}BoxShadow`).value;
+            return data;
+        }
+        
+        function getFontStyleValues(idPrefix, targetObj) {
+            const el = (id) => doc(id);
+            if(!el(`${idPrefix}Color`)) return;
+            targetObj.color = el(`${idPrefix}Color`).value; targetObj.fontSize = el(`${idPrefix}FontSizeNumber`).value + 'em';
+            targetObj.fontFamily = el(`${idPrefix}FontFamily`).value; targetObj.fontWeight = el(`${idPrefix}FontWeight`).value;
+            targetObj.fontStyle = el(`${idPrefix}FontStyle`).value;
+            if (el(`${idPrefix}TextDecoration`)) targetObj.textDecoration = el(`${idPrefix}TextDecoration`).value;
+        }
+
+        function handleSettingsSave() {
+            const saveData = () => {
+                const sceneData = appData.scenes[appData.currentSceneIndex];
+                const el = (id) => doc(id);
+                if (currentEditTarget === 'control') {
+                    const control = sceneData.controls.buttons[currentEditIndex];
+                    control.text = el('controlText').value; 
+                    control.targetScene = el('controlTarget').value; 
+                    control.hoverHint = el('controlHint').value; 
+                    control.clickSound = el('controlClickSound').value;
+                    control.clickSoundSource = el('controlClickSoundSource').value;
+                    control.clickSoundVolume = Number(el('controlClickSoundVolumeNumber').value);
+                    
+                    const newStyle = getPanelStyleValues('control');
+                    getFontStyleValues('controlFont', newStyle);
+                    control.style = newStyle;
+
+                    control.activeStyle = { 
+                        backgroundColor: el('controlActiveBgColor').value, 
+                        borderColor: el('controlActiveBorderColor').value 
+                    };
+                    
+                    const newHintStyle = getPanelStyleValues('hint');
+                    getFontStyleValues('hintFont', newHintStyle);
+                    control.hintStyle = newHintStyle;
+
+                } else {
+                    sceneData.main = {
+                        ...sceneData.main,
+                        backgroundType: el('mainBackgroundType').value, 
+                        backgroundColor: combineColorAlpha(el('mainBackgroundColor').value, el('mainBackgroundAlphaNumber').value), 
+                        backgroundImage: el('mainBackgroundImage').value, 
+                        audioFile: el('mainAudioFile').value, 
+                        audioFileSource: el('mainAudioFileSource').value,
+                        audioVolume: Number(el('mainAudioVolumeNumber').value),
+                        backgroundVideoMuted: el('mainBackgroundVideoMuted').checked,
+                        backgroundVideoVolume: Number(el('mainBackgroundVideoVolumeNumber').value),
+                        backgroundScale: Number(el('mainBackgroundScaleNumber').value),
+                        mediaPanelHeight: Number(el('mediaPanelHeightNumber').value), 
+                        dialoguePanelHeight: Number(el('dialoguePanelHeightNumber').value), optionsPanelHeight: Number(el('optionsPanelHeightNumber').value), 
+                        panelGap: Number(el('panelGapNumber').value),
+                        padding: Number(el('mainPaddingNumber').value),
+                        outline: el('mainOutline').value,
+                    };
+                    sceneData.media = { 
+                        ...getPanelStyleValues('media'), 
+                        width: Number(el('mediaPanelWidthNumber').value),
+                        positionX: Number(el('mediaPositionXNumber').value),
+                        contentScale: Number(el('mediaContentScaleNumber').value),
+                        mediaFile: el('mediaFile').value,
+                        mediaFileMuted: el('mediaFileMuted').checked
+                    };
+                    sceneData.dialogue.speaker = el('dialogueSpeaker').value; sceneData.dialogue.text = el('dialogueTextContent').value;
+                    sceneData.dialogue.animation = el('dialogueAnimation').value; sceneData.dialogue.animationSpeed = el('dialogueAnimationSpeedNumber').value;
+                    sceneData.dialogue.audioFile = el('dialogueAudioFile').value; 
+                    sceneData.dialogue.audioFileSource = el('dialogueAudioFileSource').value;
+                    sceneData.dialogue.audioVolume = Number(el('dialogueAudioVolumeNumber').value);
+                    sceneData.dialogue.lineHeight = el('textLineHeightNumber').value;
+                    sceneData.dialogue.panel = {
+                        ...getPanelStyleValues('dialoguePanel'), 
+                        width: Number(el('dialoguePanelWidthNumber').value),
+                        positionX: Number(el('dialoguePositionXNumber').value)
+                    };
+                    getFontStyleValues('speaker', sceneData.dialogue.speakerStyle); getFontStyleValues('text', sceneData.dialogue.textStyle);
+                    sceneData.controls.panel = {
+                        ...getPanelStyleValues('controlsPanel'),
+                        width: Number(el('optionsPanelWidthNumber').value),
+                        positionX: Number(el('controlsPositionXNumber').value),
+                        layout: el('controlsLayout').value,
+                        columns: Number(el('controlsColumnsNumber').value)
+                    }; 
+                }
+                saveState(); 
+                renderScene();
+                settingsModal.style.display = 'none';
+                originalStateBeforeEdit = null;
+            };
+
+            const saveMode = localStorage.getItem('vbsSaveMode') || 'separate';
+            if (currentEditTarget === 'control' && !doc('controlTarget').value.trim() && saveMode === 'separate') {
+                showPrompt('Warning: Empty Target', 
+                'The "Target Scene Name" is empty. This button will not navigate to another scene. Is this intentional?',
+                () => {
+                    promptModal.style.display = 'none';
+                    saveData();
+                }, true);
+            } else {
+                saveData();
+            }
+        }
+
+        function generateSceneHTML(pageTitle) {
+             const sceneData = appData.scenes[appData.currentSceneIndex];
+             const sceneDataString = JSON.stringify(sceneData);
+             
+             return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${pageTitle || sceneData.sceneName}</title>
+    <style>
+        :root {
+            --text-color: #ffffff;
+            --font-family: 'Monospace', monospace;
+        }
+        html, body { height: 100%; margin: 0; overflow: hidden; }
+        body {
+            background-color: #000;
+            color: var(--text-color);
+            font-family: var(--font-family);
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            position: relative;
+        }
+        #sceneBackgroundVideo { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; display: none; }
+        * { box-sizing: border-box; }
+        .main-container {
+            display: flex; flex-direction: column;
+            width: 100%;
+            height: calc(100vh - 2rem);
+            margin: auto; border: none; padding: 1rem;
+            overflow: auto;
+            align-items: center;
+            z-index: 1;
+        }
+        .panel { position: relative; overflow: hidden; background-size: cover; background-position: center; }
+        .panel-background-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; }
+        .media-panel { width: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; text-align: center; min-height: 100px; flex-shrink: 0; }
+        .dialogue-panel { padding: 1rem; min-height: 80px; overflow: auto; flex-shrink: 0; cursor: pointer; }
+        .speaker-name { font-weight: bold; margin-bottom: 0.5rem; min-height: 1.2em; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); }
+        .dialogue-text { min-height: 1.2em; white-space: pre-wrap; }
+        .controls-panel { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; align-items: center; padding: 1rem; min-height: 80px; overflow-y: auto; flex-shrink: 0; }
+        .control-option-btn {
+            flex-grow: 1; min-width: 150px; position: relative; cursor: pointer; overflow: hidden; z-index: 0;
+            font-family: inherit;
+            padding: 0.5rem 1rem;
+            transition: all 0.2s ease;
+        }
+        .control-option-btn > * { position: relative; z-index: 1; }
+        .control-option-btn:hover { filter: brightness(1.2); }
+        .control-option-btn:active { transform: scale(0.98); }
+        #editorTooltip {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            padding: 0.5rem;
+            max-width: 300px;
+            word-wrap: break-word;
+            background-color: #111111;
+            color: #ffffff; 
+            border: 1px solid #555;
+            font-size: 0.9em; 
+            font-family: var(--font-family); 
+        }
+    </style>
+</head>
+<body>
+    <video id="sceneBackgroundVideo" autoplay muted loop></video>
+    <div class="main-container" id="mainContainer">
+        <div id="mediaPanel" class="media-panel panel"></div>
+        <div id="dialoguePanel" class="dialogue-panel panel">
+            <div id="speakerName" class="speaker-name"></div>
+            <div id="dialogueText" class="dialogue-text"></div>
+        </div>
+        <div id="controlsPanel" class="controls-panel panel"></div>
+    </div>
+    
+    <div id="editorTooltip"></div>
+    <div id="audioContainer"></div>
+
+    <script>
+        const sceneData = ${sceneDataString};
+        let currentDialogueInterval;
+        let isAnimatingDialogue = false;
+        
+        function applyStyles(element, styles) {
+            Object.keys(styles).forEach(prop => {
+                if (prop !== 'backgroundType' && prop !== 'backgroundImage') {
+                    element.style[prop] = styles[prop] || '';
+                }
+            });
+        }
+
+        function applyBackground(element, bgType, bgImage, bgColor) {
+            const isUrl = (str) => String(str).startsWith('http') || String(str).startsWith('//');
+            let videoEl = element.querySelector('.panel-background-video');
+            if (videoEl) videoEl.remove();
+
+            if (bgType === 'video' && bgImage) {
+                element.style.backgroundImage = 'none';
+                element.style.backgroundColor = 'transparent';
+                videoEl = document.createElement('video');
+                videoEl.className = 'panel-background-video';
+                videoEl.src = isUrl(bgImage) ? bgImage : 'res/' + bgImage;
+                videoEl.autoplay = true; videoEl.muted = true; videoEl.loop = true;
+                element.insertBefore(videoEl, element.firstChild);
+            } else if (bgType === 'image' && bgImage) {
+                element.style.backgroundImage = \`url('\${isUrl(bgImage) ? bgImage : 'res/' + bgImage}')\`;
+                element.style.backgroundSize = 'cover';
+                element.style.backgroundPosition = 'center';
+                element.style.backgroundColor = 'transparent';
+            } else {
+                element.style.backgroundImage = 'none';
+                element.style.backgroundColor = bgColor;
+            }
+        }
+        
+        function renderScene() {
+            if (currentDialogueInterval) clearInterval(currentDialogueInterval);
+            isAnimatingDialogue = false;
+            
+            const doc = (id) => document.getElementById(id);
+            const mainContainer = doc('mainContainer'), mediaPanel = doc('mediaPanel'), dialoguePanel = doc('dialoguePanel'),
+                  speakerName = doc('speakerName'), dialogueText = doc('dialogueText'), controlsPanel = doc('controlsPanel'),
+                  sceneBackgroundVideo = doc('sceneBackgroundVideo'), audioContainer = doc('audioContainer');
+
+            const { main, media, dialogue, controls } = sceneData;
+            const isUrl = (str) => String(str).startsWith('http') || String(str).startsWith('//');
+            
+            mainContainer.style.gap = (main.panelGap || 1) + 'rem';
+            mainContainer.style.padding = (main.padding || 1) + 'rem';
+            mainContainer.style.outline = main.outline || 'none';
+            
+            const applyPosition = (panel, width, positionX) => {
+                const totalMargin = 100 - (width || 100);
+                const leftMargin = (totalMargin / 2) + (totalMargin / 2) * ((positionX || 0) / 50);
+                panel.style.marginLeft = leftMargin + '%';
+                panel.style.marginRight = (totalMargin - leftMargin) + '%';
+                panel.style.width = (width || 100) + '%';
+            };
+            applyPosition(mediaPanel, media.width, media.positionX);
+            applyPosition(dialoguePanel, dialogue.panel.width, dialogue.panel.positionX);
+            applyPosition(controlsPanel, controls.panel.width, controls.panel.positionX);
+
+            mediaPanel.style.height = (main.mediaPanelHeight || 40) + '%';
+            dialoguePanel.style.height = (main.dialoguePanelHeight || 25) + '%';
+            controlsPanel.style.height = (main.optionsPanelHeight || 25) + '%';
+            
+            document.body.style.backgroundImage = 'none';
+            sceneBackgroundVideo.style.display = 'none';
+            if (main.backgroundType === 'video' && main.backgroundImage) {
+                document.body.style.backgroundColor = '#000000';
+                sceneBackgroundVideo.src = isUrl(main.backgroundImage) ? main.backgroundImage : 'res/' + main.backgroundImage;
+                sceneBackgroundVideo.muted = main.backgroundVideoMuted;
+                sceneBackgroundVideo.volume = (main.backgroundVideoVolume || 100) / 100;
+                sceneBackgroundVideo.style.display = 'block';
+            } else if (main.backgroundType === 'image' && main.backgroundImage) {
+                document.body.style.backgroundColor = '#000000';
+                document.body.style.backgroundImage = \`url('\${isUrl(main.backgroundImage) ? main.backgroundImage : 'res/' + main.backgroundImage}')\`;
+                document.body.style.backgroundSize = (main.backgroundScale || 100) + '%';
+            } else {
+                document.body.style.backgroundColor = main.backgroundColor;
+            }
+            
+            mediaPanel.innerHTML = '';
+            const mediaStyles = { ...media };
+            delete mediaStyles.mediaFile; delete mediaStyles.mediaFileMuted; delete mediaStyles.backgroundType; delete mediaStyles.backgroundImage;
+            delete mediaStyles.width; delete mediaStyles.contentScale; delete mediaStyles.positionX;
+            applyStyles(mediaPanel, mediaStyles);
+            applyBackground(mediaPanel, media.backgroundType, media.backgroundImage, media.backgroundColor);
+
+            const mediaFile = media.mediaFile;
+            const mediaType = mediaFile ? (mediaFile.match(/\\.(mp4|webm|ogg)$/i) ? 'video' : 'image') : null;
+
+            if (mediaFile) {
+                const mediaContent = document.createElement('div');
+                const contentScale = media.contentScale || 100;
+                mediaContent.style.width = contentScale + '%';
+                mediaContent.style.height = contentScale + '%';
+                mediaContent.style.backgroundSize = 'cover';
+                mediaContent.style.backgroundPosition = 'center';
+                
+                if (mediaType === 'image') {
+                    mediaContent.style.backgroundImage = \`url('\${isUrl(mediaFile) ? mediaFile : 'res/' + mediaFile}')\`;
+                } else if (mediaType === 'video') {
+                    const video = document.createElement('video');
+                    video.autoplay = true; 
+                    video.muted = media.mediaFileMuted; 
+                    video.loop = true;
+                    video.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+                    video.src = isUrl(mediaFile) ? mediaFile : 'res/' + mediaFile;
+                    mediaContent.appendChild(video);
+                }
+                mediaPanel.appendChild(mediaContent);
+            }
+            
+            applyStyles(dialoguePanel, dialogue.panel);
+            applyBackground(dialoguePanel, dialogue.panel.backgroundType, dialogue.panel.backgroundImage, dialogue.panel.backgroundColor);
+
+            applyStyles(speakerName, dialogue.speakerStyle);
+            applyStyles(dialogueText, dialogue.textStyle);
+            dialogueText.style.lineHeight = dialogue.lineHeight;
+
+            if (!dialogue.speaker) {
+                speakerName.style.display = 'none';
+            } else {
+                speakerName.style.display = 'block';
+                speakerName.textContent = dialogue.speaker;
+            }
+            
+            applyStyles(controlsPanel, controls.panel);
+            applyBackground(controlsPanel, controls.panel.backgroundType, controls.panel.backgroundImage, controls.panel.backgroundColor);
+            controlsPanel.style.display = controls.panel.layout === 'grid' ? 'grid' : 'flex';
+            controlsPanel.style.gridTemplateColumns = \`repeat(\${controls.panel.columns}, 1fr)\`;
+            
+            controlsPanel.innerHTML = '';
+            controls.buttons.forEach((option, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'control-option-btn';
+                btn.textContent = option.text;
+                btn.dataset.target = option.targetScene;
+                btn.dataset.sound = option.clickSound;
+                btn.dataset.hintShown = 'false';
+                
+                applyStyles(btn, option.style);
+                applyBackground(btn, option.style.backgroundType, option.style.backgroundImage, option.style.backgroundColor);
+                
+                const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+                const performAction = () => {
+                    if (option.clickSound) {
+                        try { 
+                            const clickAudio = new Audio(option.clickSoundSource === 'url' ? option.clickSound : 'res/audio/' + option.clickSound);
+                            clickAudio.volume = (option.clickSoundVolume || 100) / 100;
+                            clickAudio.play();
+                        } catch(e) {}
+                    }
+                    if (option.targetScene) {
+                        window.location.href = option.targetScene.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.html';
+                    }
+                };
+
+                const showHint = () => {
+                    if (!option.hoverHint) return;
+                    const tooltip = doc('editorTooltip');
+                    tooltip.textContent = option.hoverHint;
+                    applyStyles(tooltip, option.hintStyle); 
+                    applyBackground(tooltip, option.hintStyle.backgroundType, option.hintStyle.backgroundImage, option.hintStyle.backgroundColor);
+                    
+                    const rect = btn.getBoundingClientRect();
+                    tooltip.style.display = 'block';
+                    const tooltipRect = tooltip.getBoundingClientRect();
+                    
+                    let top = rect.top - tooltipRect.height - 5;
+                    if (top < 0) top = rect.bottom + 5;
+                    let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+                    if (left < 0) left = 5;
+                    if (left + tooltipRect.width > window.innerWidth) left = window.innerWidth - tooltipRect.width - 5;
+
+                    tooltip.style.top = \`\${top}px\`;
+                    tooltip.style.left = \`\${left}px\`;
+                };
+
+                const hideHint = () => {
+                    doc('editorTooltip').style.display = 'none';
+                };
+
+                if (isMobile) {
+                    btn.addEventListener('click', (e) => {
+                        if (option.hoverHint && btn.dataset.hintShown === 'false') {
+                            e.preventDefault();
+                            doc('editorTooltip').style.display = 'none';
+                            doc('controlsPanel').querySelectorAll('.control-option-btn').forEach(b => b.dataset.hintShown = 'false');
+                            
+                            showHint();
+                            btn.dataset.hintShown = 'true';
+                        } else {
+                            performAction();
+                        }
+                    });
+                } else {
+                    btn.addEventListener('click', (e) => {
+                        performAction();
+                    });
+                    btn.addEventListener('mouseenter', showHint);
+                    btn.addEventListener('mouseleave', hideHint);
+                }
+                
+                btn.addEventListener('mouseenter', () => applyStyles(btn, option.activeStyle));
+                btn.addEventListener('mouseleave', () => {
+                    applyStyles(btn, option.style);
+                    applyBackground(btn, option.style.backgroundType, option.style.backgroundImage, option.style.backgroundColor);
+                    if (!isMobile) hideHint();
+                });
+
+                controlsPanel.appendChild(btn);
+            });
+            
+            if (('ontouchstart' in window) || (navigator.maxTouchPoints > 0)) {
+                document.body.addEventListener('click', (e) => {
+                    const tooltip = doc('editorTooltip');
+                    if (tooltip.style.display === 'block' && !tooltip.contains(e.target) && !e.target.closest('.control-option-btn')) {
+                        tooltip.style.display = 'none';
+                        doc('controlsPanel').querySelectorAll('.control-option-btn').forEach(b => b.dataset.hintShown = 'false');
+                    }
+                }, true);
+            }
+            
+            audioContainer.innerHTML = '';
+            if (main.audioFile) {
+                const bgAudio = document.createElement('audio');
+                bgAudio.src = main.audioFileSource === 'url' ? main.audioFile : 'res/audio/' + main.audioFile;
+                bgAudio.volume = (main.audioVolume || 100) / 100;
+                bgAudio.autoplay = true; bgAudio.loop = true;
+                audioContainer.appendChild(bgAudio);
+            }
+            if (dialogue.audioFile) {
+                const diagAudio = document.createElement('audio');
+                diagAudio.src = dialogue.audioFileSource === 'url' ? dialogue.audioFile : 'res/audio/' + dialogue.audioFile;
+                diagAudio.volume = (dialogue.audioVolume || 100) / 100;
+                diagAudio.autoplay = true;
+                audioContainer.appendChild(diagAudio);
+            }
+            
+            let i = 0;
+            const text = dialogue.text;
+            const anim = dialogue.animation;
+            const speed = dialogue.animationSpeed || 50;
+            dialogueText.textContent = '';
+            dialogueText.style.cssText = 'transition: none; opacity: 1; transform: none; filter: none;';
+            dialogueText.style.lineHeight = dialogue.lineHeight;
+            applyStyles(dialogueText, dialogue.textStyle);
+            
+            const finishAnimation = () => {
+                isAnimatingDialogue = false;
+                if (currentDialogueInterval) clearInterval(currentDialogueInterval);
+                dialogueText.textContent = text;
+                dialogueText.style.transition = 'none';
+                dialogueText.style.opacity = 1;
+                dialogueText.style.transform = 'none';
+                dialogueText.style.filter = 'none';
+            };
+            
+            dialoguePanel.onclick = () => {
+                if (isAnimatingDialogue) {
+                    finishAnimation();
+                }
+            };
+
+            if (anim === 'none') {
+                dialogueText.textContent = text;
+            } else {
+                isAnimatingDialogue = true;
+                if (anim === 'typing') {
+                    (function type() { if (i < text.length) { dialogueText.textContent += text.charAt(i++); currentDialogueInterval = setTimeout(type, speed); } else { isAnimatingDialogue = false; } })();
+                } else if (anim === 'glitch-type') {
+                    (function glitch() { if (i < text.length) { dialogueText.textContent = text.slice(0, i) + String.fromCharCode(33 + Math.random() * 94); currentDialogueInterval = setTimeout(() => { i++; dialogueText.textContent = text.slice(0, i); if (i < text.length) glitch(); else isAnimatingDialogue = false; }, speed); } else { isAnimatingDialogue = false; } })();
+                } else {
+                    dialogueText.textContent = text;
+                    dialogueText.style.opacity = 0;
+                    if (anim === 'fade') setTimeout(() => { dialogueText.style.transition = 'opacity 0.5s'; dialogueText.style.opacity = 1; setTimeout(() => isAnimatingDialogue = false, 500); }, 10);
+                    if (anim === 'zoom-in') setTimeout(() => { dialogueText.style.transform = 'scale(0.8)'; dialogueText.style.transition = 'all 0.3s'; dialogueText.style.opacity = 1; dialogueText.style.transform = 'scale(1)'; setTimeout(() => isAnimatingDialogue = false, 300); }, 10);
+                    if (anim === 'blur-in') setTimeout(() => { dialogueText.style.filter = 'blur(5px)'; dialogueText.style.transition = 'all 0.3s'; dialogueText.style.opacity = 1; dialogueText.style.filter = 'blur(0)'; setTimeout(() => isAnimatingDialogue = false, 300); }, 10);
+                    if (anim === 'slide-up') setTimeout(() => { dialogueText.style.transform = 'translateY(20px)'; dialogueText.style.transition = 'all 0.3s'; dialogueText.style.opacity = 1; dialogueText.style.transform = 'translateY(0)'; setTimeout(() => isAnimatingDialogue = false, 300); }, 10);
+                    if (anim === 'slide-left') setTimeout(() => { dialogueText.style.transform = 'translateX(20px)'; dialogueText.style.transition = 'all 0.3s'; dialogueText.style.opacity = 1; dialogueText.style.transform = 'translateX(0)'; setTimeout(() => isAnimatingDialogue = false, 300); }, 10);
+                }
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', renderScene);
+    <\/script>
+</body>
+</html>`;
+        }
+        
+        function generateAllScenesHTML(pageName = 'LoreScripts Project') {
+             const allScenesString = JSON.stringify(appData.scenes);
+             
+             return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${pageName}</title>
+    <style>
+        :root {
+            --text-color: #ffffff;
+            --font-family: 'Monospace', monospace;
+        }
+        html, body { height: 100%; margin: 0; overflow: hidden; }
+        body {
+            background-color: #000;
+            color: var(--text-color);
+            font-family: var(--font-family);
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            position: relative;
+        }
+        #sceneBackgroundVideo { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; display: none; }
+        * { box-sizing: border-box; }
+        .main-container {
+            display: flex; flex-direction: column;
+            width: 100%;
+            height: calc(100vh - 2rem);
+            margin: auto; border: none; padding: 1rem;
+            overflow: auto;
+            align-items: center;
+            z-index: 1;
+        }
+        .panel { position: relative; overflow: hidden; background-size: cover; background-position: center; }
+        .panel-background-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; }
+        .media-panel { width: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; text-align: center; min-height: 100px; flex-shrink: 0; }
+        .dialogue-panel { padding: 1rem; min-height: 80px; overflow: auto; flex-shrink: 0; cursor: pointer; }
+        .speaker-name { font-weight: bold; margin-bottom: 0.5rem; min-height: 1.2em; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); }
+        .dialogue-text { min-height: 1.2em; white-space: pre-wrap; }
+        .controls-panel { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; align-items: center; padding: 1rem; min-height: 80px; overflow-y: auto; flex-shrink: 0; }
+        .control-option-btn {
+            flex-grow: 1; min-width: 150px; position: relative; cursor: pointer; overflow: hidden; z-index: 0;
+            font-family: inherit;
+            padding: 0.5rem 1rem;
+            transition: all 0.2s ease;
+        }
+        .control-option-btn > * { position: relative; z-index: 1; }
+        .control-option-btn:hover { filter: brightness(1.2); }
+        .control-option-btn:active { transform: scale(0.98); }
+        #editorTooltip {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            padding: 0.5rem;
+            max-width: 300px;
+            word-wrap: break-word;
+            background-color: #111111;
+            color: #ffffff; 
+            border: 1px solid #555;
+            font-size: 0.9em; 
+            font-family: var(--font-family); 
+        }
+    </style>
+</head>
+<body>
+    <video id="sceneBackgroundVideo" autoplay muted loop></video>
+    <div class="main-container" id="mainContainer">
+        <div id="mediaPanel" class="media-panel panel"></div>
+        <div id="dialoguePanel" class="dialogue-panel panel">
+            <div id="speakerName" class="speaker-name"></div>
+            <div id="dialogueText" class="dialogue-text"></div>
+        </div>
+        <div id="controlsPanel" class="controls-panel panel"></div>
+    </div>
+    
+    <div id="editorTooltip"></div>
+    <div id="audioContainer"></div>
+
+    <script>
+        const allScenes = ${allScenesString};
+        let currentDialogueInterval;
+        let isAnimatingDialogue = false;
+        
+        function applyStyles(element, styles) {
+            Object.keys(styles).forEach(prop => {
+                if (prop !== 'backgroundType' && prop !== 'backgroundImage') {
+                    element.style[prop] = styles[prop] || '';
+                }
+            });
+        }
+
+        function applyBackground(element, bgType, bgImage, bgColor) {
+            const isUrl = (str) => String(str).startsWith('http') || String(str).startsWith('//');
+            let videoEl = element.querySelector('.panel-background-video');
+            if (videoEl) videoEl.remove();
+
+            if (bgType === 'video' && bgImage) {
+                element.style.backgroundImage = 'none';
+                element.style.backgroundColor = 'transparent';
+                videoEl = document.createElement('video');
+                videoEl.className = 'panel-background-video';
+                videoEl.src = isUrl(bgImage) ? bgImage : 'res/' + bgImage;
+                videoEl.autoplay = true; videoEl.muted = true; videoEl.loop = true;
+                element.insertBefore(videoEl, element.firstChild);
+            } else if (bgType === 'image' && bgImage) {
+                element.style.backgroundImage = \`url('\${isUrl(bgImage) ? bgImage : 'res/' + bgImage}')\`;
+                element.style.backgroundSize = 'cover';
+                element.style.backgroundPosition = 'center';
+                element.style.backgroundColor = 'transparent';
+            } else {
+                element.style.backgroundImage = 'none';
+                element.style.backgroundColor = bgColor;
+            }
+        }
+        
+        function renderSceneByHash() {
+            if (currentDialogueInterval) clearInterval(currentDialogueInterval);
+            isAnimatingDialogue = false;
+            
+            const sceneName = window.location.hash.substring(1) || allScenes[0].sceneName;
+            const sceneData = allScenes.find(s => s.sceneName === sceneName) || allScenes[0];
+            if (!sceneData) return;
+
+            const doc = (id) => document.getElementById(id);
+            const mainContainer = doc('mainContainer'), mediaPanel = doc('mediaPanel'), dialoguePanel = doc('dialoguePanel'),
+                  speakerName = doc('speakerName'), dialogueText = doc('dialogueText'), controlsPanel = doc('controlsPanel'),
+                  sceneBackgroundVideo = doc('sceneBackgroundVideo'), audioContainer = doc('audioContainer');
+
+            const { main, media, dialogue, controls } = sceneData;
+            const isUrl = (str) => String(str).startsWith('http') || String(str).startsWith('//');
+            
+            mainContainer.style.gap = (main.panelGap || 1) + 'rem';
+            mainContainer.style.padding = (main.padding || 1) + 'rem';
+            mainContainer.style.outline = main.outline || 'none';
+            
+            const applyPosition = (panel, width, positionX) => {
+                const totalMargin = 100 - (width || 100);
+                const leftMargin = (totalMargin / 2) + (totalMargin / 2) * ((positionX || 0) / 50);
+                panel.style.marginLeft = leftMargin + '%';
+                panel.style.marginRight = (totalMargin - leftMargin) + '%';
+                panel.style.width = (width || 100) + '%';
+            };
+            applyPosition(mediaPanel, media.width, media.positionX);
+            applyPosition(dialoguePanel, dialogue.panel.width, dialogue.panel.positionX);
+            applyPosition(controlsPanel, controls.panel.width, controls.panel.positionX);
+
+            mediaPanel.style.height = (main.mediaPanelHeight || 40) + '%';
+            dialoguePanel.style.height = (main.dialoguePanelHeight || 25) + '%';
+            controlsPanel.style.height = (main.optionsPanelHeight || 25) + '%';
+            
+            document.body.style.backgroundImage = 'none';
+            sceneBackgroundVideo.style.display = 'none';
+            if (main.backgroundType === 'video' && main.backgroundImage) {
+                document.body.style.backgroundColor = '#000000';
+                sceneBackgroundVideo.src = isUrl(main.backgroundImage) ? main.backgroundImage : 'res/' + main.backgroundImage;
+                sceneBackgroundVideo.muted = main.backgroundVideoMuted;
+                sceneBackgroundVideo.volume = (main.backgroundVideoVolume || 100) / 100;
+                sceneBackgroundVideo.style.display = 'block';
+            } else if (main.backgroundType === 'image' && main.backgroundImage) {
+                document.body.style.backgroundColor = '#000000';
+                document.body.style.backgroundImage = \`url('\${isUrl(main.backgroundImage) ? main.backgroundImage : 'res/' + main.backgroundImage}')\`;
+                document.body.style.backgroundSize = (main.backgroundScale || 100) + '%';
+            } else {
+                document.body.style.backgroundColor = main.backgroundColor;
+            }
+            
+            mediaPanel.innerHTML = '';
+            const mediaStyles = { ...media };
+            delete mediaStyles.mediaFile; delete mediaStyles.mediaFileMuted; delete mediaStyles.backgroundType; delete mediaStyles.backgroundImage;
+            delete mediaStyles.width; delete mediaStyles.contentScale; delete mediaStyles.positionX;
+            applyStyles(mediaPanel, mediaStyles);
+            applyBackground(mediaPanel, media.backgroundType, media.backgroundImage, media.backgroundColor);
+
+            const mediaFile = media.mediaFile;
+            const mediaType = mediaFile ? (mediaFile.match(/\\.(mp4|webm|ogg)$/i) ? 'video' : 'image') : null;
+
+            if (mediaFile) {
+                const mediaContent = document.createElement('div');
+                const contentScale = media.contentScale || 100;
+                mediaContent.style.width = contentScale + '%';
+                mediaContent.style.height = contentScale + '%';
+                mediaContent.style.backgroundSize = 'cover';
+                mediaContent.style.backgroundPosition = 'center';
+                
+                if (mediaType === 'image') {
+                    mediaContent.style.backgroundImage = \`url('\${isUrl(mediaFile) ? mediaFile : 'res/' + mediaFile}')\`;
+                } else if (mediaType === 'video') {
+                    const video = document.createElement('video');
+                    video.autoplay = true; 
+                    video.muted = media.mediaFileMuted; 
+                    video.loop = true;
+                    video.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+                    video.src = isUrl(mediaFile) ? mediaFile : 'res/' + mediaFile;
+                    mediaContent.appendChild(video);
+                }
+                mediaPanel.appendChild(mediaContent);
+            }
+            
+            applyStyles(dialoguePanel, dialogue.panel);
+            applyBackground(dialoguePanel, dialogue.panel.backgroundType, dialogue.panel.backgroundImage, dialogue.panel.backgroundColor);
+
+            applyStyles(speakerName, dialogue.speakerStyle);
+            applyStyles(dialogueText, dialogue.textStyle);
+            dialogueText.style.lineHeight = dialogue.lineHeight;
+
+            if (!dialogue.speaker) {
+                speakerName.style.display = 'none';
+            } else {
+                speakerName.style.display = 'block';
+                speakerName.textContent = dialogue.speaker;
+            }
+            
+            applyStyles(controlsPanel, controls.panel);
+            applyBackground(controlsPanel, controls.panel.backgroundType, controls.panel.backgroundImage, controls.panel.backgroundColor);
+            controlsPanel.style.display = controls.panel.layout === 'grid' ? 'grid' : 'flex';
+            controlsPanel.style.gridTemplateColumns = \`repeat(\${controls.panel.columns}, 1fr)\`;
+            
+            controlsPanel.innerHTML = '';
+            controls.buttons.forEach((option, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'control-option-btn';
+                btn.textContent = option.text;
+                btn.dataset.target = option.targetScene;
+                btn.dataset.sound = option.clickSound;
+                btn.dataset.hintShown = 'false';
+                
+                applyStyles(btn, option.style);
+                applyBackground(btn, option.style.backgroundType, option.style.backgroundImage, option.style.backgroundColor);
+                
+                const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+                const performAction = () => {
+                    if (option.clickSound) {
+                        try { 
+                            const clickAudio = new Audio(option.clickSoundSource === 'url' ? option.clickSound : 'res/audio/' + option.clickSound);
+                            clickAudio.volume = (option.clickSoundVolume || 100) / 100;
+                            clickAudio.play();
+                        } catch(e) {}
+                    }
+                    if (option.targetScene) {
+                        window.location.hash = option.targetScene;
+                    }
+                };
+
+                const showHint = () => {
+                    if (!option.hoverHint) return;
+                    const tooltip = doc('editorTooltip');
+                    tooltip.textContent = option.hoverHint;
+                    applyStyles(tooltip, option.hintStyle); 
+                    applyBackground(tooltip, option.hintStyle.backgroundType, option.hintStyle.backgroundImage, option.hintStyle.backgroundColor);
+                    
+                    const rect = btn.getBoundingClientRect();
+                    tooltip.style.display = 'block';
+                    const tooltipRect = tooltip.getBoundingClientRect();
+                    
+                    let top = rect.top - tooltipRect.height - 5;
+                    if (top < 0) top = rect.bottom + 5;
+                    let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+                    if (left < 0) left = 5;
+                    if (left + tooltipRect.width > window.innerWidth) left = window.innerWidth - tooltipRect.width - 5;
+
+                    tooltip.style.top = \`\${top}px\`;
+                    tooltip.style.left = \`\${left}px\`;
+                };
+
+                const hideHint = () => {
+                    doc('editorTooltip').style.display = 'none';
+                };
+
+                if (isMobile) {
+                    btn.addEventListener('click', (e) => {
+                        if (option.hoverHint && btn.dataset.hintShown === 'false') {
+                            e.preventDefault();
+                            doc('editorTooltip').style.display = 'none';
+                            doc('controlsPanel').querySelectorAll('.control-option-btn').forEach(b => b.dataset.hintShown = 'false');
+                            
+                            showHint();
+                            btn.dataset.hintShown = 'true';
+                        } else {
+                            performAction();
+                        }
+                    });
+                } else {
+                    btn.addEventListener('click', (e) => {
+                        performAction();
+                    });
+                    btn.addEventListener('mouseenter', showHint);
+                    btn.addEventListener('mouseleave', hideHint);
+                }
+                
+                btn.addEventListener('mouseenter', () => applyStyles(btn, option.activeStyle));
+                btn.addEventListener('mouseleave', () => {
+                    applyStyles(btn, option.style);
+                    applyBackground(btn, option.style.backgroundType, option.style.backgroundImage, option.style.backgroundColor);
+                    if (!isMobile) hideHint();
+                });
+
+                controlsPanel.appendChild(btn);
+            });
+            
+            if (('ontouchstart' in window) || (navigator.maxTouchPoints > 0)) {
+                document.body.addEventListener('click', (e) => {
+                    const tooltip = doc('editorTooltip');
+                    if (tooltip.style.display === 'block' && !tooltip.contains(e.target) && !e.target.closest('.control-option-btn')) {
+                        tooltip.style.display = 'none';
+                        doc('controlsPanel').querySelectorAll('.control-option-btn').forEach(b => b.dataset.hintShown = 'false');
+                    }
+                }, true);
+            }
+            
+            audioContainer.innerHTML = '';
+            if (main.audioFile) {
+                const bgAudio = document.createElement('audio');
+                bgAudio.src = main.audioFileSource === 'url' ? main.audioFile : 'res/audio/' + main.audioFile;
+                bgAudio.volume = (main.audioVolume || 100) / 100;
+                bgAudio.autoplay = true; bgAudio.loop = true;
+                audioContainer.appendChild(bgAudio);
+            }
+            if (dialogue.audioFile) {
+                const diagAudio = document.createElement('audio');
+                diagAudio.src = dialogue.audioFileSource === 'url' ? dialogue.audioFile : 'res/audio/' + dialogue.audioFile;
+                diagAudio.volume = (dialogue.audioVolume || 100) / 100;
+                diagAudio.autoplay = true;
+                audioContainer.appendChild(diagAudio);
+            }
+            
+            let i = 0;
+            const text = dialogue.text;
+            const anim = dialogue.animation;
+            const speed = dialogue.animationSpeed || 50;
+            dialogueText.textContent = '';
+            dialogueText.style.cssText = 'transition: none; opacity: 1; transform: none; filter: none;';
+            dialogueText.style.lineHeight = dialogue.lineHeight;
+            applyStyles(dialogueText, dialogue.textStyle);
+            
+            const finishAnimation = () => {
+                isAnimatingDialogue = false;
+                if (currentDialogueInterval) clearInterval(currentDialogueInterval);
+                dialogueText.textContent = text;
+                dialogueText.style.transition = 'none';
+                dialogueText.style.opacity = 1;
+                dialogueText.style.transform = 'none';
+                dialogueText.style.filter = 'none';
+            };
+            
+            dialoguePanel.onclick = () => {
+                if (isAnimatingDialogue) {
+                    finishAnimation();
+                }
+            };
+            
+            if (anim === 'none') {
+                dialogueText.textContent = text;
+            } else {
+                isAnimatingDialogue = true;
+                if (anim === 'typing') {
+                    (function type() { if (i < text.length) { dialogueText.textContent += text.charAt(i++); currentDialogueInterval = setTimeout(type, speed); } else { isAnimatingDialogue = false; } })();
+                } else if (anim === 'glitch-type') {
+                    (function glitch() { if (i < text.length) { dialogueText.textContent = text.slice(0, i) + String.fromCharCode(33 + Math.random() * 94); currentDialogueInterval = setTimeout(() => { i++; dialogueText.textContent = text.slice(0, i); if (i < text.length) glitch(); else isAnimatingDialogue = false; }, speed); } else { isAnimatingDialogue = false; } })();
+                } else {
+                    dialogueText.textContent = text;
+                    dialogueText.style.opacity = 0;
+                    if (anim === 'fade') setTimeout(() => { dialogueText.style.transition = 'opacity 0.5s'; dialogueText.style.opacity = 1; setTimeout(() => isAnimatingDialogue = false, 500); }, 10);
+                    if (anim === 'zoom-in') setTimeout(() => { dialogueText.style.transform = 'scale(0.8)'; dialogueText.style.transition = 'all 0.3s'; dialogueText.style.opacity = 1; dialogueText.style.transform = 'scale(1)'; setTimeout(() => isAnimatingDialogue = false, 300); }, 10);
+                    if (anim === 'blur-in') setTimeout(() => { dialogueText.style.filter = 'blur(5px)'; dialogueText.style.transition = 'all 0.3s'; dialogueText.style.opacity = 1; dialogueText.style.filter = 'blur(0)'; setTimeout(() => isAnimatingDialogue = false, 300); }, 10);
+                    if (anim === 'slide-up') setTimeout(() => { dialogueText.style.transform = 'translateY(20px)'; dialogueText.style.transition = 'all 0.3s'; dialogueText.style.opacity = 1; dialogueText.style.transform = 'translateY(0)'; setTimeout(() => isAnimatingDialogue = false, 300); }, 10);
+                    if (anim === 'slide-left') setTimeout(() => { dialogueText.style.transform = 'translateX(20px)'; dialogueText.style.transition = 'all 0.3s'; dialogueText.style.opacity = 1; dialogueText.style.transform = 'translateX(0)'; setTimeout(() => isAnimatingDialogue = false, 300); }, 10);
+                }
+            }
+        }
+        
+        window.addEventListener('hashchange', renderSceneByHash);
+        document.addEventListener('DOMContentLoaded', renderSceneByHash);
+    <\/script>
+</body>
+</html>`;
+        }
+        
+        function exportScene(){
+            const sceneData = appData.scenes[appData.currentSceneIndex];
+            const sceneName = sceneData.sceneName;
+
+            if (!sceneName || (sceneName === 'Intro' && appData.scenes.length > 1)) {
+                showPrompt("Scene Name Required", "Please set a unique name for this scene in the Tabs menu before exporting.", () => promptModal.style.display = 'none');
+                return;
+            }
+
+            showPrompt('Save Scene', 
+                `<p>Enter a page title for this scene (file will be saved as <strong>${sceneName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.html</strong>).</p>
+                 <input type="text" id="sceneTitleInput" placeholder="Scene Title" value="${sceneName}">`, 
+                () => {
+                    const pageTitle = doc('sceneTitleInput').value.trim() || sceneName;
+                    const htmlContent = generateSceneHTML(pageTitle); 
+                    const blob = new Blob([htmlContent], { type: 'text/html' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `${sceneName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.html`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    promptModal.style.display = 'none';
+                }, 
+                true);
+        }
+
+        function exportAllScenes() {
+            showPrompt('Save Project', 
+                `<p>Enter a page name for your project. This will be used for the file name and the page title.</p>
+                 <input type="text" id="projectNameInput" placeholder="My Project" value="LoreScripts Project">`, 
+                () => {
+                    const pageName = doc('projectNameInput').value.trim() || 'LoreScripts Project';
+                    const htmlContent = generateAllScenesHTML(pageName); 
+                    const blob = new Blob([htmlContent], { type: 'text/html' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `${pageName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.html`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    promptModal.style.display = 'none';
+                }, 
+                true);
+        }
+
+        function handleExport() {
+            const saveMode = localStorage.getItem('vbsSaveMode') || 'separate';
+            if (saveMode === 'allInOne') {
+                exportAllScenes();
+            } else {
+                exportScene();
+            }
+        }
+
+        saveBtn.addEventListener('click', (e) => { e.stopPropagation(); handleExport(); });
+        
+        function renderTabs() {
+            tabsPanel.innerHTML = '';
+            appData.scenes.forEach((scene, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'tab-wrapper';
+                wrapper.dataset.index = index;
+
+                const tab = document.createElement('div');
+                tab.className = 'tab-square';
+                if (index === appData.currentSceneIndex) tab.classList.add('active');
+                tab.textContent = scene.sceneName;
+                
+                const delBtn = document.createElement('button');
+                delBtn.className = 'tab-delete-btn';
+                delBtn.innerHTML = '&times;';
+                tab.appendChild(delBtn);
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'edit-tab-btn';
+                editBtn.textContent = 'Edit';
+
+                wrapper.appendChild(tab);
+                wrapper.appendChild(editBtn);
+                tabsPanel.appendChild(wrapper);
+            });
+            const addTab = document.createElement('div');
+            addTab.className = 'tab-square';
+            addTab.innerHTML = '<h2>+</h2><p>New Scene</p>';
+            addTab.id = 'addNewSceneBtn';
+            tabsPanel.appendChild(addTab);
+        }
+
+        tabsBtn.addEventListener('click', (e) => { e.stopPropagation(); renderTabs(); tabsModal.style.display = 'flex'; });
+        closeTabsBtn.addEventListener('click', () => tabsModal.style.display = 'none');
+
+        tabsPanel.addEventListener('click', e => {
+            const wrapper = e.target.closest('.tab-wrapper');
+            const tabSquare = e.target.closest('.tab-square');
+
+            if (tabSquare && tabSquare.id === 'addNewSceneBtn') {
+                tabsModal.style.display = 'none';
+                showPrompt('New Scene', `<p>Enter a name for the new scene.</p><input type="text" id="sceneNameInput" placeholder="Scene Name">`, () => {
+                    const name = doc('sceneNameInput').value.trim();
+                    if (name) {
+                        const newScene = JSON.parse(JSON.stringify(defaultScene)); newScene.sceneName = name;
+                        appData.scenes.push(newScene); appData.currentSceneIndex = appData.scenes.length - 1;
+                        saveState(); renderScene(); promptModal.style.display = 'none';
+                    }
+                }, true);
+                return;
+            }
+
+            if (!wrapper) return;
+            const index = parseInt(wrapper.dataset.index);
+
+            if (e.target.classList.contains('edit-tab-btn')) {
+                const oldName = appData.scenes[index].sceneName;
+                showPrompt('Rename Scene', `<p>Enter a new name for "${oldName}".</p><input type="text" id="sceneNameInput" value="${oldName}">`, () => {
+                    const newName = doc('sceneNameInput').value.trim();
+                    if (newName && newName !== oldName) {
+                        appData.scenes[index].sceneName = newName;
+                        saveState();
+                        renderTabs();
+                    }
+                    promptModal.style.display = 'none';
+                }, true);
+                return;
+            }
+            
+            if (e.target.classList.contains('tab-delete-btn')) {
+                if (appData.scenes.length === 1) { 
+                    showPrompt("Cannot Delete", "You cannot delete the last scene.", () => promptModal.style.display = 'none');
+                    return; 
+                }
+                showPrompt('Delete Scene', `Are you sure you want to delete "${appData.scenes[index].sceneName}"?`, () => {
+                    appData.scenes.splice(index, 1);
+                    if (appData.currentSceneIndex >= index) appData.currentSceneIndex = Math.max(0, appData.currentSceneIndex - 1);
+                    saveState(); renderScene(); renderTabs(); promptModal.style.display = 'none';
+                }, true);
+                return;
+            }
+            
+            if (e.target.closest('.tab-square')) {
+                if (wrapper.classList.contains('active-options')) {
+                    appData.currentSceneIndex = index;
+                    saveState();
+                    renderScene();
+                    tabsModal.style.display = 'none';
+                } else {
+                    tabsPanel.querySelectorAll('.tab-wrapper').forEach(w => w.classList.remove('active-options'));
+                    wrapper.classList.add('active-options');
+                }
+            }
+        });
+
+        resetAllBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showPrompt('RESET ALL DATA', 'This will delete ALL scenes and all settings (including save mode). This cannot be undone. Are you sure?', () => {
+                localStorage.removeItem('vbsAppData');
+                localStorage.removeItem('vbsSaveMode');
+                location.reload();
+            }, true);
+        });
+        
+        clearBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const currentSceneName = appData.scenes[appData.currentSceneIndex].sceneName;
+            showPrompt('Clear Current Scene', `Are you sure you want to reset "${currentSceneName}"?`, () => {
+                appData.scenes[appData.currentSceneIndex] = deepMerge({ sceneName: currentSceneName }, defaultScene);
+                saveState(); renderScene(); promptModal.style.display = 'none';
+            }, true);
+        });
+
+        let draggedItem = null;
+        controlsPanel.addEventListener('dragstart', e => { if (e.target.classList.contains('control-option-btn')) { draggedItem = e.target; setTimeout(() => e.target.classList.add('dragging'), 0); } });
+        controlsPanel.addEventListener('dragend', e => { if (e.target.classList.contains('control-option-btn')) { e.target.classList.remove('dragging'); draggedItem = null; } });
+        controlsPanel.addEventListener('dragover', e => {
+            e.preventDefault();
+            const afterElement = [...controlsPanel.querySelectorAll('.control-option-btn:not(.dragging)')].reduce((closest, child) => {
+                const box = child.getBoundingClientRect(); const offset = e.clientY - box.top - box.height / 2;
+                return (offset < 0 && offset > closest.offset) ? { offset: offset, element: child } : closest;
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+            if (afterElement == null) { controlsPanel.insertBefore(draggedItem, addOptionBtn); } else { controlsPanel.insertBefore(draggedItem, afterElement); }
+        });
+        controlsPanel.addEventListener('drop', e => {
+            e.preventDefault();
+            if (!draggedItem) return;
+            const scene = appData.scenes[appData.currentSceneIndex];
+            const newOrder = [...controlsPanel.querySelectorAll('.control-option-btn')].map(btn => scene.controls.buttons[parseInt(btn.dataset.index)]);
+            scene.controls.buttons = newOrder; saveState(); renderScene();
+            draggedItem = null;
+        });
+
+        modalSaveBtn.addEventListener('click', handleSettingsSave);
+        modalCancelBtn.addEventListener('click', closeSettings);
+        deleteBtn.addEventListener('click', () => {
+            if (currentEditTarget === 'control' && currentEditIndex > -1) {
+                appData.scenes[appData.currentSceneIndex].controls.buttons.splice(currentEditIndex, 1);
+                saveState();
+                renderScene();
+                settingsModal.style.display = 'none';
+                originalStateBeforeEdit = null;
+                currentEditTarget = null;
+                currentEditIndex = -1;
+            }
+        });
+        settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeSettings(); });
+        
+        mainContainer.addEventListener('click', (e) => {
+            if (e.target === mainContainer) openSettings('scene');
+        });
+        mediaPanel.addEventListener('click', (e) => { e.stopPropagation(); openSettings('display'); });
+        dialoguePanel.addEventListener('click', (e) => { e.stopPropagation(); openSettings('dialogue'); });
+        controlsPanel.addEventListener('click', (e) => { 
+            if (e.target === controlsPanel) {
+                e.stopPropagation(); 
+                openSettings('options'); 
+            }
+        });
+        addOptionBtn.addEventListener('click', (e) => { e.stopPropagation(); appData.scenes[appData.currentSceneIndex].controls.buttons.push(JSON.parse(JSON.stringify(defaultControlButton))); saveState(); renderScene(); });
+        
+        toggleControlsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.body.classList.add('controls-hidden');
+        });
+        restoreControlsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.body.classList.remove('controls-hidden');
+        });
+        topControls.addEventListener('click', (e) => {
+            if (e.target === topControls) {
+                openSettings('scene');
+            }
+        });
+
+        function showWelcomePrompt() {
+            if (!localStorage.getItem('vbsAppData') && !localStorage.getItem('vitalBorderScene')) {
+                 showPrompt('Welcome!', `<p>Enter a name for your first scene.</p><input type="text" id="sceneNameInput" placeholder="Scene Name" value="Intro">`, () => {
+                    const name = doc('sceneNameInput').value.trim();
+                    if(name) {
+                        appData.scenes[0].sceneName = name;
+                        saveState(); renderScene();
+                        promptModal.style.display = 'none';
+                    }
+                }, true);
+            } else { 
+                renderScene(); 
+            }
+        }
+
+        function init() {
+            loadState();
+            
+            const saveMode = localStorage.getItem('vbsSaveMode');
+            if (!saveMode) {
+                saveModeModal.style.display = 'flex';
+                saveModeModal.querySelectorAll('.save-mode-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        localStorage.setItem('vbsSaveMode', btn.dataset.mode);
+                        saveModeModal.style.display = 'none';
+                        showWelcomePrompt();
+                    });
+                });
+            } else {
+                showWelcomePrompt();
+            }
+        }
+        init();
+    });
+    </script>
+</body>
+</html>
