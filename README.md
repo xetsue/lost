@@ -11,7 +11,7 @@ This project is contained entirely within the **`index.html`** file, making it p
 
 ## Quick Start
 
-**Web Usage:** [xetsue.github.io/ls](HERE) without downloading the file.
+**Web Usage:** [xetsue.github.io/lost](https://xetsue.github.io/lost/) without downloading the file.
 
 **Self Usage:**
 1.  **Download the File:** **`index.html`**
